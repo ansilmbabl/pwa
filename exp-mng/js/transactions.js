@@ -1,6 +1,6 @@
 import { STORES, getAll, getById, put, add, remove, getCategories, getSetting, setSetting, getDefaultWallet } from "./db.js";
 import { parseLocalDate, parseDateTime, todayStr, nowTimeStr, monthKey, formatMonthLabel, startOfMonth, startOfWeek, inRange, formatDisplayDateTime, setDefaultDateTimeFields } from "./dates.js";
-import { toast, formatCurrency, categoryDot, escapeHtml, confirmInline } from "./ui.js";
+import { toast, formatCurrency, categoryDot, escapeHtml, confirmInline, categoryOptionLabel } from "./ui.js";
 import { shareTransaction } from "./share.js";
 import { applyAutoRules } from "./rules.js";
 import { activatePane } from "./tabs.js";
@@ -266,15 +266,34 @@ export function bindHistoryControls() {
   if (catFilter) catFilter.onchange = () => { historyFilter.categoryId = catFilter.value; window.dispatchEvent(new Event("refresh-history")); };
 }
 
+
 export async function populateCategorySelect(selectEl, type) {
+  if (!selectEl) return;
+  const prev = selectEl.value;
   const cats = await getCategories(type);
   const last = await getSetting("lastCategory");
-  selectEl.innerHTML = cats.map((c) => {
-    const label = c.parentId ? `  └ ${c.name}` : `${c.icon || ""} ${escapeHtml(c.name)}`;
-    return `<option value="${c.id}">${label}</option>`;
-  }).join("");
-  if (last && last.type === type && cats.some((c) => c.id === Number(last.categoryId))) {
+  selectEl.innerHTML = cats.map((c) =>
+    `<option value="${c.id}">${categoryOptionLabel(c)}</option>`,
+  ).join("");
+  if (prev && cats.some((c) => c.id === Number(prev))) {
+    selectEl.value = prev;
+  } else if (last && last.type === type && cats.some((c) => c.id === Number(last.categoryId))) {
     selectEl.value = last.categoryId;
+  }
+}
+
+export async function refreshAllCategorySelects() {
+  const txType = document.getElementById("txType")?.value || "expense";
+  await populateCategorySelect(document.getElementById("txCat"), txType);
+  await populateCategorySelect(document.getElementById("recurCat"), "expense");
+
+  const histCat = document.getElementById("historyCatFilter");
+  if (histCat) {
+    const prev = histCat.value;
+    const cats = await getCategories();
+    histCat.innerHTML = `<option value="">All categories</option>` +
+      cats.map((c) => `<option value="${c.id}">${categoryOptionLabel(c)}</option>`).join("");
+    if (prev && cats.some((c) => c.id === Number(prev))) histCat.value = prev;
   }
 }
 

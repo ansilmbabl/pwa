@@ -5,6 +5,7 @@ import {
   saveTransaction, deleteTransaction, duplicateLastTransaction, getTransactions,
   computeMetrics, renderHistory, renderRecentActivity, bindHistoryControls,
   populateCategorySelect, fillFormFromTx, resetForm, bindSplitControls,
+  refreshAllCategorySelects,
   collectSplitData, setEditId, syncTypePills, openAddSheet, closeAddSheet,
   bindMerchantAutoRule, bindReceiptAttach,
 } from "./transactions.js";
@@ -33,6 +34,7 @@ import {
   registerServiceWorker, finishUpdateOnLaunch, bindUpdateControls,
   renderUpdatePanel, showUpdateBanner,
 } from "./update.js";
+import { bindTaxCalculator, renderTaxCalculatorPanel } from "./tax-ui.js";
 
 let deferredPrompt;
 
@@ -99,6 +101,7 @@ function switchTab(target, btn) {
   }
   if (target === "wallets") renderWalletsPanel();
   if (target === "mileage") renderMileagePanel();
+  if (target === "taxcalc") renderTaxCalculatorPanel();
 }
 
 function openMorePopup() {
@@ -364,16 +367,23 @@ function bindSettings() {
   document.getElementById("addCatBtn")?.addEventListener("click", async () => {
     const name = document.getElementById("newCatName").value;
     const type = document.getElementById("newCatType").value;
-    if (!name) return;
-    await addCustomCategory(
-      name, type,
-      document.getElementById("newCatColor").value,
-      document.getElementById("newCatIcon").value,
-      document.getElementById("newCatParent")?.value,
-    );
-    document.getElementById("newCatName").value = "";
-    await renderCustomCategories(document.getElementById("categoriesList"));
-    toast("Category added", "success");
+    if (!name.trim()) return;
+    try {
+      await addCustomCategory(
+        name, type,
+        document.getElementById("newCatColor").value,
+        document.getElementById("newCatIcon").value,
+        document.getElementById("newCatParent")?.value,
+      );
+      document.getElementById("newCatName").value = "";
+      document.getElementById("newCatIcon").value = "";
+      await renderCustomCategories(document.getElementById("categoriesList"));
+      await refreshAllCategorySelects();
+      await renderRulesPanel();
+      toast("Category added", "success");
+    } catch (e) {
+      toast(e.message, "error");
+    }
   });
   document.getElementById("addTagBtn")?.addEventListener("click", async () => {
     await addTag(document.getElementById("newTagName").value);
@@ -412,6 +422,13 @@ function bindSettings() {
       document.getElementById("rulePattern").value = "";
       await renderRulesPanel();
     } catch (e) { toast(e.message, "error"); }
+  });
+
+  document.querySelectorAll(".emoji-pick").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById("newCatIcon");
+      if (input) input.value = btn.dataset.emoji || btn.textContent.trim();
+    });
   });
 }
 
@@ -480,7 +497,15 @@ function bindPWA() {
 }
 
 function bindEvents() {
-  window.addEventListener("refresh-app", refreshAll);
+  window.addEventListener("refresh-app", async () => {
+    await refreshAllCategorySelects();
+    await renderRulesPanel();
+    await refreshAll();
+  });
+  window.addEventListener("refresh-categories", async () => {
+    await refreshAllCategorySelects();
+    await renderRulesPanel();
+  });
   window.addEventListener("refresh-history", () => renderHistory(document.getElementById("historyList"), refreshAll));
   window.addEventListener("report-pane-change", () => renderReports());
 
@@ -507,18 +532,10 @@ function bindEvents() {
 }
 
 async function populateSelects() {
-  await populateCategorySelect(document.getElementById("txCat"), "expense");
-  await populateCategorySelect(document.getElementById("recurCat"), "expense");
+  await refreshAllCategorySelects();
   await populateEventSelect(document.getElementById("txEvent"));
   const txs = await getTransactions();
   populateMonthPicker(document.getElementById("reportMonth"), txs);
-
-  const cats = await getAll(STORES.CAT);
-  const histCat = document.getElementById("historyCatFilter");
-  if (histCat) {
-    histCat.innerHTML = `<option value="">All categories</option>` +
-      cats.map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
-  }
 
   await renderCustomCategories(document.getElementById("categoriesList"));
   await renderTagsManager(document.getElementById("tagsList"));
@@ -549,6 +566,9 @@ export async function initApp() {
   bindHistoryControls();
   bindLockEvents();
   initAllSectionTabs();
+  bindTaxCalculator();
+
+  document.getElementById("openTaxCalcBtn")?.addEventListener("click", () => switchTab("taxcalc"));
 
   bindTour({
     switchTab: (t) => switchTab(t),

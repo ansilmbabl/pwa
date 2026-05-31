@@ -1,4 +1,4 @@
-import { STORES, add, getAll, getCategories } from "./db.js";
+import { STORES, add, getAll, findCategoryByName } from "./db.js";
 import { todayStr, nowTimeStr } from "./dates.js";
 import { toast } from "./ui.js";
 
@@ -33,15 +33,16 @@ function mapRow(headers, values) {
 async function resolveCategory(name, type, cats) {
   if (!name) {
     const other = cats.find((c) => c.name === "Other" && c.type === type);
-    return other || cats[0];
+    return other || cats.find((c) => c.type === type) || cats[0];
   }
-  let cat = cats.find((c) => c.name.toLowerCase() === name.toLowerCase() && c.type === type);
+  let cat = cats.find((c) => c.name.toLowerCase() === name.toLowerCase() && c.type === type)
+    || await findCategoryByName(name, type);
   if (!cat) {
     const id = await add(STORES.CAT, {
-      name, type, color: "#64748b", icon: "📦",
+      name: name.trim(), type, color: "#64748b", icon: "📦",
       budgetLimit: 0, isFavorite: false, rollover: 0, parentId: null, isTaxDeductible: false,
     });
-    cat = { id, name, type };
+    cat = { id, name: name.trim(), type, icon: "📦" };
     cats.push(cat);
   }
   return cat;

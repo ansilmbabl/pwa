@@ -100,7 +100,18 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - **Overview:** income, expenses, net, share & filtered export (CSV, JSON, PDF)
 - **Charts:** category pie chart, top categories, spending trend, month vs last month
 - **Insights:** top merchants, spending heatmap, cash flow forecast, yearly summary
-- **Tax:** deductible categories + mileage total
+- **Tax:** deductible categories + mileage total; link to salary tax calculator
+
+### India salary tax calculator (FY 2025-26)
+- **Old vs new regime** side-by-side comparison with recommendation
+- Inputs: gross salary, basic, age category (general / senior / super senior)
+- Old regime: 80C, 80D, HRA, home loan interest (24b), NPS 80CCD(1B), professional tax
+- Employer NPS (80CCD(2)) for both regimes
+- **HRA exemption** calculator (three-method rule)
+- **Reference tab:** slabs, surcharge, cess, deductions list
+- Section 87A rebate, 4% cess, surcharge for high incomes
+- **Tax rules last updated** date shown at bottom (update when laws change)
+- Runs fully offline — no data sent anywhere
 
 ### Settings & data
 - **One-click app update** — Settings → Data → Update now (auto-backup, activate latest version, reload)

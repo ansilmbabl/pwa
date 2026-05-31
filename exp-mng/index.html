@@ -243,6 +243,7 @@
 
       <div class="tab-pane" data-pane="tax">
         <div id="taxReport"></div>
+        <button type="button" class="btn btn-secondary" id="openTaxCalcBtn" style="margin-top:12px">Open salary tax calculator →</button>
       </div>
     </div>
 
@@ -284,6 +285,329 @@
         <div class="row-2"><label>Rate ₹/mi <input type="number" id="mileageRate" step="0.5" value="15"></label><button type="submit" class="btn">Log trip</button></div>
       </form>
       <div id="mileageList"></div>
+    </div>
+
+    <!-- TAX CALCULATOR (India) -->
+    <div id="panel-taxcalc" class="view-panel" data-section-tabs>
+      <div class="page-header">
+        <h3>Tax Calculator</h3>
+        <p>India salary tax · FY 2025-26</p>
+      </div>
+      <nav class="section-tabs sticky-tabs" role="tablist">
+        <button type="button" class="section-tab active" data-pane="calc" role="tab" aria-selected="true">Calculator</button>
+        <button type="button" class="section-tab" data-pane="hra" role="tab">HRA</button>
+        <button type="button" class="section-tab" data-pane="salary" role="tab">Salary target</button>
+        <button type="button" class="section-tab" data-pane="reference" role="tab">Reference</button>
+      </nav>
+
+      <div class="tab-pane active" data-pane="calc">
+        <div class="form-card">
+          <h4>Salary details <span class="muted">(both regimes)</span></h4>
+          <div class="field">
+            <div class="field-label-row">
+              <label for="taxGross">Annual gross salary (₹)</label>
+              <button type="button" class="info-btn" data-tax-help="gross" aria-label="Help: gross salary">i</button>
+            </div>
+            <input type="number" id="taxGross" placeholder="e.g. 1500000" step="1000">
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <div class="field-label-row">
+                <label for="taxBasic">Annual basic (₹)</label>
+                <button type="button" class="info-btn" data-tax-help="basic" aria-label="Help: basic salary">i</button>
+              </div>
+              <input type="number" id="taxBasic" placeholder="40% of gross if blank" step="1000">
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <span class="field-sublabel">Age category</span>
+                <button type="button" class="info-btn" data-tax-help="age" aria-label="Help: age category">i</button>
+              </div>
+              <div class="radio-chip-group" role="radiogroup" aria-label="Age category">
+                <label class="radio-chip"><input type="radio" name="taxAge" id="taxAgeGeneral" value="general" checked><span>General</span></label>
+                <label class="radio-chip"><input type="radio" name="taxAge" id="taxAgeSenior" value="senior"><span>60–80</span></label>
+                <label class="radio-chip"><input type="radio" name="taxAge" id="taxAgeSuper" value="super"><span>80+</span></label>
+              </div>
+              <select id="taxAge" hidden aria-hidden="true">
+                <option value="general" selected>General</option>
+                <option value="senior">Senior</option>
+                <option value="super">Super</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card">
+          <div class="tax-regime-head">
+            <h4>PF / EPF</h4>
+            <button type="button" class="info-btn" data-tax-help="pfEpf" aria-label="Help: PF">i</button>
+          </div>
+          <p class="muted hint">Employee PF → 80C (old regime) · Employer PF → ₹7.5L cap with NPS</p>
+          <div class="check-row">
+            <label><input type="checkbox" id="taxIncludePf" checked> Include PF in calculation</label>
+          </div>
+          <div class="check-row">
+            <label><input type="checkbox" id="taxUsePfCalc" checked> Auto-calculate from basic</label>
+            <button type="button" class="info-btn info-btn-sm" data-tax-help="pfEmployee" aria-label="Help">i</button>
+          </div>
+          <div id="taxPfCalcFields">
+            <div class="row-2">
+              <div class="field">
+                <div class="field-label-row">
+                  <label for="taxEmployeePfPct">Employee PF %</label>
+                  <button type="button" class="info-btn" data-tax-help="pfEmployee" aria-label="Help">i</button>
+                </div>
+                <input type="number" id="taxEmployeePfPct" value="12" step="0.5" min="0" max="100">
+              </div>
+              <div class="field">
+                <div class="field-label-row">
+                  <label for="taxEmployerPfPct">Employer PF %</label>
+                  <button type="button" class="info-btn" data-tax-help="pfEmployer" aria-label="Help">i</button>
+                </div>
+                <input type="number" id="taxEmployerPfPct" value="12" step="0.5" min="0" max="100">
+              </div>
+            </div>
+            <div class="check-row">
+              <label><input type="checkbox" id="taxPfCeiling" checked> ₹15,000/month wage ceiling</label>
+              <button type="button" class="info-btn info-btn-sm" data-tax-help="pfCeiling" aria-label="Help">i</button>
+            </div>
+          </div>
+          <div id="taxPfManualFields" class="hidden">
+            <div class="row-2">
+              <div class="field">
+                <div class="field-label-row">
+                  <label for="taxEmployeePfManual">Employee PF (₹/yr)</label>
+                  <button type="button" class="info-btn" data-tax-help="pfEmployee" aria-label="Help">i</button>
+                </div>
+                <input type="number" id="taxEmployeePfManual" placeholder="Annual amount" step="1000">
+              </div>
+              <div class="field">
+                <div class="field-label-row">
+                  <label for="taxEmployerPfManual">Employer PF (₹/yr)</label>
+                  <button type="button" class="info-btn" data-tax-help="pfEmployer" aria-label="Help">i</button>
+                </div>
+                <input type="number" id="taxEmployerPfManual" placeholder="Annual amount" step="1000">
+              </div>
+            </div>
+          </div>
+          <p id="taxPfPreview" class="tax-auto-badge hidden"></p>
+          <div class="check-row">
+            <label><input type="checkbox" id="taxPfIn80C" checked> Add employee PF to 80C (old regime)</label>
+            <button type="button" class="info-btn info-btn-sm" data-tax-help="pfIn80C" aria-label="Help">i</button>
+          </div>
+        </div>
+
+        <div class="form-card tax-regime-card tax-regime-new">
+          <div class="tax-regime-head">
+            <h4>New regime</h4>
+            <button type="button" class="info-btn" data-tax-help="newRegime" aria-label="Help: new regime">i</button>
+          </div>
+          <p class="muted hint">Default regime · lower slabs · ₹75k standard deduction applied automatically</p>
+          <div class="tax-auto-badge">
+            <span>Standard deduction: ₹75,000</span>
+            <button type="button" class="info-btn info-btn-sm" data-tax-help="stdDedNew" aria-label="Help: standard deduction">i</button>
+          </div>
+          <div class="check-row">
+            <label><input type="checkbox" id="taxEmployerNpsNew"> Include employer NPS (80CCD(2))</label>
+            <button type="button" class="info-btn info-btn-sm" data-tax-help="employerNpsNew" aria-label="Help: employer NPS new">i</button>
+          </div>
+          <div class="field">
+            <div class="field-label-row">
+              <label for="taxEmployerNpsPctNew">Employer NPS % of basic</label>
+              <button type="button" class="info-btn" data-tax-help="employerNpsNew" aria-label="Help: employer NPS percent">i</button>
+            </div>
+            <input type="number" id="taxEmployerNpsPctNew" placeholder="14" step="0.5" value="14">
+          </div>
+          <p class="muted hint tax-not-applicable">80C, HRA, 80D, and home loan interest do not apply in the new regime.</p>
+        </div>
+
+        <div class="form-card tax-regime-card tax-regime-old">
+          <div class="tax-regime-head">
+            <h4>Old regime</h4>
+            <button type="button" class="info-btn" data-tax-help="oldRegime" aria-label="Help: old regime">i</button>
+          </div>
+          <p class="muted hint">Opt-in at filing · claim deductions below · ₹50k standard deduction applied automatically</p>
+          <div class="tax-auto-badge">
+            <span>Standard deduction: ₹50,000</span>
+            <button type="button" class="info-btn info-btn-sm" data-tax-help="stdDedOld" aria-label="Help: standard deduction old">i</button>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <div class="field-label-row">
+                <label for="tax80C">Other 80C — excl. PF (₹)</label>
+                <button type="button" class="info-btn" data-tax-help="sec80Cother" aria-label="Help: other 80C">i</button>
+              </div>
+              <input type="number" id="tax80C" placeholder="PPF, ELSS, LIC… max 1.5L incl. PF" max="150000">
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="tax80Dself">80D self/family (₹)</label>
+                <button type="button" class="info-btn" data-tax-help="sec80D" aria-label="Help: 80D">i</button>
+              </div>
+              <input type="number" id="tax80Dself" placeholder="Max 25,000" max="25000">
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <div class="field-label-row">
+                <label for="tax80Dparents">80D parents (₹)</label>
+                <button type="button" class="info-btn" data-tax-help="sec80Dparents" aria-label="Help: 80D parents">i</button>
+              </div>
+              <input type="number" id="tax80Dparents" placeholder="Max 50,000" max="50000">
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="taxNps1B">NPS 80CCD(1B) (₹)</label>
+                <button type="button" class="info-btn" data-tax-help="nps1B" aria-label="Help: NPS 1B">i</button>
+              </div>
+              <input type="number" id="taxNps1B" placeholder="Max 50,000" max="50000">
+            </div>
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <div class="field-label-row">
+                <label for="taxHomeLoan">Home loan interest 24(b) (₹)</label>
+                <button type="button" class="info-btn" data-tax-help="homeLoan" aria-label="Help: home loan">i</button>
+              </div>
+              <input type="number" id="taxHomeLoan" placeholder="Max 2,00,000" max="200000">
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="taxProfTax">Professional tax (₹)</label>
+                <button type="button" class="info-btn" data-tax-help="profTax" aria-label="Help: professional tax">i</button>
+              </div>
+              <input type="number" id="taxProfTax" value="2500" max="2500">
+            </div>
+          </div>
+          <div class="field-label-row" style="margin-top:8px">
+            <span class="field-sublabel">HRA exemption</span>
+            <button type="button" class="info-btn" data-tax-help="hra" aria-label="Help: HRA">i</button>
+          </div>
+          <label class="check-row"><input type="checkbox" id="taxUseHraCalc"> Calculate HRA automatically</label>
+          <div id="hraManualField" class="field">
+            <div class="field-label-row">
+              <label for="taxHraManual">HRA exemption (₹/yr)</label>
+              <button type="button" class="info-btn" data-tax-help="hra" aria-label="Help: HRA manual">i</button>
+            </div>
+            <input type="number" id="taxHraManual" placeholder="Manual amount">
+          </div>
+          <div id="hraCalcFields" class="hidden">
+            <div class="row-2">
+              <div class="field">
+                <div class="field-label-row">
+                  <label for="taxHraReceived">HRA received (₹/yr)</label>
+                  <button type="button" class="info-btn" data-tax-help="hraReceived" aria-label="Help: HRA received">i</button>
+                </div>
+                <input type="number" id="taxHraReceived">
+              </div>
+              <div class="field">
+                <div class="field-label-row">
+                  <label for="taxRentPaid">Rent paid (₹/yr)</label>
+                  <button type="button" class="info-btn" data-tax-help="hraRent" aria-label="Help: rent paid">i</button>
+                </div>
+                <input type="number" id="taxRentPaid">
+              </div>
+            </div>
+            <div class="check-row">
+              <label><input type="checkbox" id="taxMetro"> Metro city (50% rule)</label>
+              <button type="button" class="info-btn info-btn-sm" data-tax-help="hraMetro" aria-label="Help: metro">i</button>
+            </div>
+          </div>
+          <div class="check-row">
+            <label><input type="checkbox" id="taxEmployerNpsOld"> Include employer NPS (80CCD(2))</label>
+            <button type="button" class="info-btn info-btn-sm" data-tax-help="employerNpsOld" aria-label="Help: employer NPS old">i</button>
+          </div>
+          <div class="field">
+            <div class="field-label-row">
+              <label for="taxEmployerNpsPctOld">Employer NPS % of basic</label>
+              <button type="button" class="info-btn" data-tax-help="employerNpsOld" aria-label="Help: employer NPS percent old">i</button>
+            </div>
+            <input type="number" id="taxEmployerNpsPctOld" placeholder="10" step="0.5" value="10">
+          </div>
+        </div>
+
+        <div class="row-actions">
+          <button type="button" id="taxCalcBtn" class="btn">Compare regimes</button>
+          <button type="button" id="taxClearBtn" class="btn btn-secondary">Clear</button>
+        </div>
+        <div id="taxCompareResult" style="margin-top:16px"></div>
+      </div>
+
+      <div class="tab-pane" data-pane="salary">
+        <div class="form-card">
+          <div class="tax-regime-head">
+            <h4>Salary target</h4>
+            <button type="button" class="info-btn" data-tax-help="salaryTarget" aria-label="Help">i</button>
+          </div>
+          <p class="muted hint">Uses PF &amp; deduction settings from the Calculator tab. Enter basic there for accurate PF.</p>
+          <div class="field">
+            <div class="field-label-row">
+              <label for="salaryTargetInHand">Desired in-hand / month (₹)</label>
+            </div>
+            <input type="number" id="salaryTargetInHand" placeholder="e.g. 80000" step="1000">
+          </div>
+          <div class="field">
+            <div class="field-label-row">
+              <span class="field-sublabel">Tax regime to plan for</span>
+            </div>
+            <div class="radio-chip-group" role="radiogroup">
+              <label class="radio-chip"><input type="radio" name="salaryRegime" value="new" checked><span>New</span></label>
+              <label class="radio-chip"><input type="radio" name="salaryRegime" value="old"><span>Old</span></label>
+              <label class="radio-chip"><input type="radio" name="salaryRegime" value="both"><span>Compare</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="row-actions">
+          <button type="button" id="salaryTargetBtn" class="btn">Calculate required LPA</button>
+          <button type="button" id="salaryClearBtn" class="btn btn-secondary">Clear</button>
+        </div>
+        <div id="salaryTargetResult" style="margin-top:16px"></div>
+      </div>
+
+      <div class="tab-pane" data-pane="hra">
+        <div class="form-card">
+          <div class="tax-regime-head">
+            <h4>HRA exemption calculator</h4>
+            <button type="button" class="info-btn" data-tax-help="hra" aria-label="Help: HRA">i</button>
+          </div>
+          <p class="muted">Old regime only — least of three methods.</p>
+          <div class="row-2">
+            <div class="field">
+              <div class="field-label-row">
+                <label for="hraReceived">HRA received (₹/yr)</label>
+                <button type="button" class="info-btn" data-tax-help="hraReceived" aria-label="Help">i</button>
+              </div>
+              <input type="number" id="hraReceived">
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="hraBasic">Basic salary (₹/yr)</label>
+                <button type="button" class="info-btn" data-tax-help="basic" aria-label="Help">i</button>
+              </div>
+              <input type="number" id="hraBasic">
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-label-row">
+              <label for="hraRent">Rent paid (₹/yr)</label>
+              <button type="button" class="info-btn" data-tax-help="hraRent" aria-label="Help">i</button>
+            </div>
+            <input type="number" id="hraRent">
+          </div>
+          <div class="check-row">
+            <label><input type="checkbox" id="hraMetro"> Metro city (Delhi, Mumbai, Kolkata, Chennai)</label>
+            <button type="button" class="info-btn info-btn-sm" data-tax-help="hraMetro" aria-label="Help">i</button>
+          </div>
+          <button type="button" id="taxHraCalcBtn" class="btn">Calculate HRA</button>
+        </div>
+        <div id="hraResult"></div>
+      </div>
+
+      <div class="tab-pane" data-pane="reference">
+        <div id="taxReference"></div>
+      </div>
+
+      <footer id="taxFooterMeta" class="tax-footer"></footer>
     </div>
 
     <!-- SETTINGS -->
@@ -368,7 +692,23 @@
             <input type="text" id="newCatName" placeholder="Name">
             <select id="newCatType"><option value="expense">Expense</option><option value="income">Income</option></select>
           </div>
-          <div class="row-2"><input type="text" id="newCatIcon" placeholder="Icon" maxlength="2"><input type="color" id="newCatColor" value="#64748b"></div>
+          <div class="row-2">
+            <input type="text" id="newCatIcon" placeholder="Icon emoji" autocomplete="off">
+            <input type="color" id="newCatColor" value="#64748b">
+          </div>
+          <div class="emoji-picks" id="catEmojiPicks" aria-label="Pick icon">
+            <button type="button" class="emoji-pick" data-emoji="🍔">🍔</button>
+            <button type="button" class="emoji-pick" data-emoji="🚗">🚗</button>
+            <button type="button" class="emoji-pick" data-emoji="🛍️">🛍️</button>
+            <button type="button" class="emoji-pick" data-emoji="📄">📄</button>
+            <button type="button" class="emoji-pick" data-emoji="💊">💊</button>
+            <button type="button" class="emoji-pick" data-emoji="🎬">🎬</button>
+            <button type="button" class="emoji-pick" data-emoji="💼">💼</button>
+            <button type="button" class="emoji-pick" data-emoji="🏠">🏠</button>
+            <button type="button" class="emoji-pick" data-emoji="✈️">✈️</button>
+            <button type="button" class="emoji-pick" data-emoji="🎁">🎁</button>
+            <button type="button" class="emoji-pick" data-emoji="📦">📦</button>
+          </div>
           <select id="newCatParent"><option value="">No parent (top-level)</option></select>
           <button type="button" id="addCatBtn" class="btn">Add category</button>
         </div>
@@ -475,6 +815,7 @@
         <button type="button" class="more-link" data-panel="goals"><span class="more-icon">🎯</span>Goals</button>
         <button type="button" class="more-link" data-panel="events"><span class="more-icon">✈️</span>Events</button>
         <button type="button" class="more-link" data-panel="mileage"><span class="more-icon">🚗</span>Mileage</button>
+        <button type="button" class="more-link" data-panel="taxcalc"><span class="more-icon">🧾</span>Tax calc</button>
       </div>
     </div>
   </div>

@@ -83,3 +83,9 @@ export function categoryDot(color) {
 export function escapeHtml(s) {
   return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
+
+export function categoryOptionLabel(c) {
+  const icon = c.icon ? `${c.icon} ` : "";
+  if (c.parentId) return `  └ ${icon}${escapeHtml(c.name)}`;
+  return `${icon}${escapeHtml(c.name)}`;
+}

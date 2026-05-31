@@ -102,6 +102,7 @@ export async function initDB() {
   await migrateLegacyTransactions();
   await migrateTimeField();
   await migrateCategoryFields();
+  await dedupeCategories();
 }
 
 async function migrateCategoryFields() {
@@ -141,14 +142,15 @@ async function migrateLegacyTransactions() {
     if (tx.categoryId) continue;
     const type = tx.type || "expense";
     const catName = tx.category || "Other";
-    let cat = allCats.find((c) => c.name === catName && c.type === type) || allCats.find((c) => c.name === catName);
+    let cat = allCats.find((c) => c.name === catName && c.type === type)
+      || allCats.find((c) => c.name === catName && !type);
     if (!cat) {
       const id = await add(STORES.CAT, {
         name: catName, type, color: "#64748b", icon: "📦",
-        budgetLimit: 0, isFavorite: false, rollover: 0,
+        budgetLimit: 0, isFavorite: false, rollover: 0, parentId: null, isTaxDeductible: false,
       });
-      cat = { id, name: catName };
-      allCats.push({ id, name: catName, type });
+      cat = { id, name: catName, type };
+      allCats.push(cat);
     }
     await put(STORES.TX, {
       ...tx,
@@ -238,13 +240,70 @@ export async function setSetting(key, value) {
 export async function getCategories(type) {
   const all = await getAll(STORES.CAT);
   const filtered = type ? all.filter((c) => c.type === type) : all;
-  return filtered.sort((a, b) => {
-    const pa = a.parentId || 0;
-    const pb = b.parentId || 0;
-    if (pa !== pb) return pa - pb;
+  const seen = new Set();
+  const unique = filtered.filter((c) => {
+    if (seen.has(c.id)) return false;
+    seen.add(c.id);
+    return true;
+  });
+
+  const sortByName = (a, b) => {
     if (a.isFavorite !== b.isFavorite) return (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
     return a.name.localeCompare(b.name);
-  });
+  };
+
+  const tops = unique.filter((c) => !c.parentId).sort(sortByName);
+  const ordered = [];
+  for (const top of tops) {
+    ordered.push(top);
+    unique.filter((c) => c.parentId === top.id).sort(sortByName).forEach((child) => ordered.push(child));
+  }
+  unique.filter((c) => c.parentId && !tops.some((t) => t.id === c.parentId))
+    .sort(sortByName)
+    .forEach((orphan) => { if (!ordered.includes(orphan)) ordered.push(orphan); });
+  return ordered;
+}
+
+export async function findCategoryByName(name, type) {
+  const key = name.trim().toLowerCase();
+  if (!key) return null;
+  const all = await getAll(STORES.CAT);
+  return all.find((c) => c.type === type && c.name.trim().toLowerCase() === key) || null;
+}
+
+async function dedupeCategories() {
+  const cats = await getAll(STORES.CAT);
+  const groups = new Map();
+  for (const cat of cats) {
+    const key = `${cat.type}:${cat.name.trim().toLowerCase()}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(cat);
+  }
+
+  for (const dupes of groups.values()) {
+    if (dupes.length <= 1) continue;
+    dupes.sort((a, b) => {
+      const score = (c) => (c.icon && c.icon !== "📦" ? 0 : 1);
+      return score(a) - score(b) || a.id - b.id;
+    });
+    const keep = dupes[0];
+    for (let i = 1; i < dupes.length; i++) {
+      const drop = dupes[i];
+      const txs = await getAll(STORES.TX);
+      for (const tx of txs) {
+        if (tx.categoryId === drop.id) {
+          await put(STORES.TX, { ...tx, categoryId: keep.id, categoryName: keep.name });
+        }
+      }
+      const rules = await getAll(STORES.AUTO_RULES);
+      for (const rule of rules) {
+        if (rule.categoryId === drop.id) {
+          await put(STORES.AUTO_RULES, { ...rule, categoryId: keep.id });
+        }
+      }
+      await remove(STORES.CAT, drop.id);
+    }
+  }
 }
 
 export function formatCategoryLabel(cat, allCats) {
@@ -284,7 +343,26 @@ export async function exportAllData() {
 export async function importAllData(data, merge = true) {
   if (!data || !data.transactions) throw new Error("Invalid backup file");
   if (!merge) await clearAllData();
+
+  if (data[STORES.CAT]?.length) {
+    const existing = merge ? await getAll(STORES.CAT) : [];
+    for (const item of data[STORES.CAT]) {
+      const { id, ...rest } = item;
+      const dup = existing.find(
+        (c) => c.type === rest.type && c.name.trim().toLowerCase() === rest.name.trim().toLowerCase(),
+      );
+      if (dup) {
+        const patch = { ...dup, ...rest, id: dup.id };
+        await put(STORES.CAT, patch);
+      } else {
+        const newId = await add(STORES.CAT, rest);
+        existing.push({ ...rest, id: newId });
+      }
+    }
+  }
+
   for (const store of Object.values(STORES)) {
+    if (store === STORES.CAT) continue;
     if (!data[store]) continue;
     for (const item of data[store]) {
       if (store === STORES.SETTINGS) {
@@ -297,4 +375,5 @@ export async function importAllData(data, merge = true) {
       }
     }
   }
+  await dedupeCategories();
 }

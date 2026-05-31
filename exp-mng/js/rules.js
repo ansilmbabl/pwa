@@ -1,5 +1,5 @@
-import { STORES, getAll, add, remove } from "./db.js";
-import { escapeHtml, toast } from "./ui.js";
+import { STORES, getAll, add, remove, getCategories } from "./db.js";
+import { escapeHtml, toast, categoryOptionLabel } from "./ui.js";
 
 export async function applyAutoRules(merchant, type) {
   if (!merchant?.trim()) return null;
@@ -30,8 +30,9 @@ export async function renderRulesPanel() {
 
   const sel = document.getElementById("ruleCat");
   if (sel) {
-    sel.innerHTML = cats.filter((c) => c.type === "expense").map((c) =>
-      `<option value="${c.id}">${c.icon || ""} ${escapeHtml(c.name)}</option>`
+    const expenseCats = await getCategories("expense");
+    sel.innerHTML = expenseCats.map((c) =>
+      `<option value="${c.id}">${categoryOptionLabel(c)}</option>`,
     ).join("");
   }
 }

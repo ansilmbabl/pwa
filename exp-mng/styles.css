@@ -540,7 +540,34 @@ input, select, textarea {
   font-size: 1rem;
   margin-bottom: 0;
   transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+input[type="file"] {
+  width: auto;
+  min-height: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+select {
   appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
 }
 
 textarea { resize: vertical; font-family: inherit; min-height: 72px; }
@@ -1286,3 +1313,288 @@ html[data-theme="light"] .navbar {
 }
 
 .update-banner.hidden { display: none !important; }
+
+/* ── Tax calculator ── */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  font-size: 0.875rem;
+}
+
+.check-row label { display: flex; align-items: center; gap: 8px; flex: 1; margin: 0; cursor: pointer; }
+
+/* Radio / option chips (compact selection) */
+.radio-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.radio-chip {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.radio-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.radio-chip span {
+  display: block;
+  text-align: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.radio-chip input:checked + span {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.radio-chip input:focus-visible + span {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.row-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.row-actions .btn { flex: 1; }
+.row-actions .btn-secondary { flex: 0 0 auto; min-width: 100px; }
+
+.tax-ref-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tax-ref-links a {
+  color: var(--accent);
+  font-size: 0.85rem;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.tax-ref-links a:hover { text-decoration: underline; }
+
+.inhand-breakdown {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 10px 0;
+  border: 1px solid var(--border);
+}
+
+.inhand-breakdown .tax-row { border-bottom-color: transparent; padding: 4px 0; }
+.inhand-breakdown .tax-row:last-child { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px; font-weight: 600; }
+
+.tax-compare-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.tax-result-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+
+.tax-result-card.winner {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+.tax-result-card h4 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+}
+
+.tax-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tax-row.total { font-size: 0.95rem; padding-top: 10px; }
+.tax-row.highlight { color: var(--accent); font-size: 0.95rem; }
+
+.tax-notes {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.tax-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.tax-disclaimer {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin: 0 0 8px;
+}
+
+.tax-updated {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.emoji-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+
+.emoji-pick {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.emoji-pick:active { background: var(--accent-soft); }
+
+/* ── Tax info buttons & regime sections ── */
+.field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.field-label-row label,
+.field-label-row .field-sublabel {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.field-sublabel { font-weight: 600; color: var(--text-primary); }
+
+.info-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-style: italic;
+  font-family: Georgia, serif;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.info-btn-sm {
+  width: 20px;
+  height: 20px;
+  font-size: 0.65rem;
+}
+
+.info-btn-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  pointer-events: none;
+}
+
+.info-btn:active { background: var(--accent-soft); }
+
+.check-row .info-btn-sm { margin-left: auto; flex-shrink: 0; }
+
+.tax-regime-card {
+  border-left: 3px solid var(--border);
+}
+
+.tax-regime-new {
+  border-left-color: #3b82f6;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(59, 130, 246, 0.06) 100%);
+}
+
+.tax-regime-old {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(245, 158, 11, 0.06) 100%);
+}
+
+.tax-regime-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.tax-regime-head h4 { margin: 0; flex: 1; }
+
+.tax-auto-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin: 8px 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.tax-not-applicable {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  font-size: 0.8rem;
+}
+
+.tax-help-body {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.tax-result-card .info-btn-sm {
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.tax-inhand-note { margin: 0 0 8px; font-size: 0.75rem; }

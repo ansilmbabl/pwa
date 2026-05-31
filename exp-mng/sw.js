@@ -1,4 +1,4 @@
-const CACHE_NAME = "ledger-v9-auto-update";
+const CACHE_NAME = "ledger-v14-salary-pf";
 const ASSETS = [
   "./",
   "./index.html",
@@ -20,6 +20,8 @@ const ASSETS = [
   "./js/lock.js",
   "./js/theme.js",
   "./js/mileage.js",
+  "./js/tax-india.js",
+  "./js/tax-ui.js",
   "./js/transactions.js",
   "./js/budget.js",
   "./js/bills.js",

@@ -1,6 +1,12 @@
-import { STORES, getAll, put, add, remove, getCategories, getSetting, setSetting } from "./db.js";
+import { STORES, getAll, put, add, remove, getCategories, getSetting, setSetting, findCategoryByName } from "./db.js";
 import { formatCurrency, escapeHtml, toast } from "./ui.js";
 import { computeMetrics } from "./transactions.js";
+
+function normalizeIcon(raw) {
+  const trimmed = (raw || "").trim();
+  if (!trimmed) return "📦";
+  return [...trimmed][0] || "📦";
+}
 
 export async function getMonthlyBudget() {
   return Number(await getSetting("monthlyBudget", 0));
@@ -101,8 +107,12 @@ export async function checkBudgetAlerts() {
 }
 
 export async function addCustomCategory(name, type, color, icon, parentId = null, isTaxDeductible = false) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) throw new Error("Category name required");
+  const existing = await findCategoryByName(trimmed, type);
+  if (existing) throw new Error(`"${trimmed}" already exists`);
   await add(STORES.CAT, {
-    name, type, color: color || "#64748b", icon: icon || "📦",
+    name: trimmed, type, color: color || "#64748b", icon: normalizeIcon(icon),
     budgetLimit: 0, isFavorite: false, rollover: 0,
     parentId: parentId ? Number(parentId) : null,
     isTaxDeductible: !!isTaxDeductible,
@@ -141,7 +151,8 @@ export async function renderCustomCategories(container) {
   container.querySelectorAll(".del-cat").forEach((btn) => {
     btn.onclick = async () => {
       await remove(STORES.CAT, Number(btn.dataset.id));
-      renderCustomCategories(container);
+      await renderCustomCategories(container);
+      window.dispatchEvent(new Event("refresh-categories"));
       toast("Category removed");
     };
   });
