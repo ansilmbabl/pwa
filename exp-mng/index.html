@@ -23,6 +23,9 @@
         </div>
       </div>
       <div class="header-actions">
+        <button type="button" id="dueHeaderBtn" class="btn btn-sm btn-secondary" title="Due payments">
+          Due <span id="dueHeaderBadge" class="due-header-badge hidden">0</span>
+        </button>
         <button type="button" id="refreshBtn" class="icon-btn" title="Refresh">↻</button>
         <button type="button" id="tourBtn" class="icon-btn" title="App tour">?</button>
         <button type="button" id="settingsBtn" class="icon-btn" title="Settings">⚙</button>
@@ -49,6 +52,7 @@
         </div>
         <div class="progress-track dash-budget-bar" style="margin-top:16px"><div id="dashBudgetBar" class="progress-fill" style="width:0"></div></div>
       </div>
+      <div id="dashDueStrip" class="dash-due-strip hidden" aria-live="polite"></div>
       <p id="emptyDash" class="empty-msg hidden">Tap + to add your first transaction</p>
 
       <p class="section-label">Wallets</p>
@@ -137,7 +141,7 @@
           <label class="field-block notif-toggle"><input type="checkbox" id="recurSub"> Track as subscription</label>
           <input type="text" id="recurNotes" placeholder="Notes">
           <button type="submit" class="btn">Add rule</button>
-          <p class="muted hint"><button type="button" id="enableNotifBtn" class="link-btn">Notification settings</button> for bill reminders</p>
+          <p class="muted hint"><button type="button" id="enableNotifBtn" class="link-btn">Notification settings</button> for bill reminders · <button type="button" class="link-btn" data-tab-jump="due">Due payments</button> (pending sends)</p>
         </form>
       </div>
       <div class="tab-pane" data-pane="rules">
@@ -146,6 +150,22 @@
       </div>
       <div class="tab-pane" data-pane="calendar">
         <div class="subpanel-section"><p class="section-label">Upcoming (30 days)</p><div id="billsCalendar"></div></div>
+      </div>
+    </div>
+
+    <!-- DUE (full screen — add/edit in popup) -->
+    <div id="panel-due" class="view-panel sub-panel">
+      <div class="page-header page-header-compact">
+        <h3>Due</h3>
+        <p>Money you plan to send — pay with your apps, then mark paid (saved to <strong>History</strong>)</p>
+      </div>
+      <div class="due-panel-toolbar">
+        <button type="button" id="duePanelAddBtn" class="btn">+ Add</button>
+      </div>
+      <div id="dueRootMain" class="due-panel-body">
+        <p class="due-stat-line"><strong data-due-stat>Nothing pending</strong></p>
+        <p class="muted hint">Use <strong>Payment apps</strong> on each row to open UPI. <strong>Mark paid</strong> logs the expense using the category you picked when adding.</p>
+        <div data-due-open-list class="due-panel-list"></div>
       </div>
     </div>
 
@@ -650,141 +670,382 @@
       <footer id="taxFooterMeta" class="tax-footer"></footer>
     </div>
 
-    <!-- SETTINGS -->
-    <div id="panel-settings" class="view-panel" data-section-tabs>
-      <div class="page-header">
-        <h3>Settings</h3>
-        <p>Preferences & data</p>
-      </div>
-      <nav class="section-tabs sticky-tabs" role="tablist">
-        <button type="button" class="section-tab active" data-pane="general" role="tab" aria-selected="true">General</button>
-        <button type="button" class="section-tab" data-pane="data" role="tab">Data</button>
-        <button type="button" class="section-tab" data-pane="organize" role="tab">Organize</button>
-        <button type="button" class="section-tab" data-pane="about" role="tab">About</button>
-      </nav>
+    <!-- SETTINGS (hub → drill-in, like system Settings apps) -->
+    <div id="panel-settings" class="view-panel settings-panel">
+      <div id="settingsHubView" class="settings-hub">
+        <header class="settings-hero settings-hub-hero">
+          <h3 class="settings-hero-title">Settings</h3>
+        </header>
 
-      <div class="tab-pane active" data-pane="general">
-        <div class="form-card">
-          <h4>Appearance</h4>
-          <button type="button" id="themeToggleBtn" class="btn btn-secondary">Switch theme</button>
-          <label class="field-block">Currency
-            <select id="currencySelect"></select>
-          </label>
+        <p class="settings-hub-section-label muted">General</p>
+        <div class="settings-hub-card">
+          <button type="button" class="settings-hub-row" data-settings-screen="appearance">
+            <span class="settings-hub-glyph" aria-hidden="true">A</span>
+            <span class="settings-hub-row-text">
+              <span class="settings-hub-row-title">Appearance</span>
+              <span class="settings-hub-row-sub muted">Theme &amp; currency</span>
+            </span>
+            <span class="settings-hub-chev" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="settings-hub-row" data-settings-screen="notifications">
+            <span class="settings-hub-glyph" aria-hidden="true">N</span>
+            <span class="settings-hub-row-text">
+              <span class="settings-hub-row-title">Notifications</span>
+              <span class="settings-hub-row-sub muted">Reminders &amp; alerts</span>
+            </span>
+            <span class="settings-hub-chev" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="settings-hub-row" data-settings-screen="security">
+            <span class="settings-hub-glyph" aria-hidden="true">P</span>
+            <span class="settings-hub-row-text">
+              <span class="settings-hub-row-title">PIN lock</span>
+              <span class="settings-hub-row-sub muted">Optional app PIN</span>
+            </span>
+            <span class="settings-hub-chev" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="settings-hub-row" data-settings-screen="rules">
+            <span class="settings-hub-glyph" aria-hidden="true">R</span>
+            <span class="settings-hub-row-text">
+              <span class="settings-hub-row-title">Smart rules</span>
+              <span class="settings-hub-row-sub muted">Auto-categorize by merchant</span>
+            </span>
+            <span class="settings-hub-chev" aria-hidden="true">›</span>
+          </button>
         </div>
-        <div class="form-card">
-          <h4>Notifications</h4>
-          <p id="notifPermStatus" class="muted"></p>
-          <div class="row-2">
-            <button type="button" id="notifEnableBtn" class="btn btn-secondary">Enable notifications</button>
-            <button type="button" id="notifTestBtn" class="btn btn-ghost btn-sm">Test</button>
-          </div>
-          <label class="field-block notif-toggle"><input type="checkbox" id="notifDailyEnabled" checked> Daily expense reminder</label>
-          <label class="field-block">Reminder time <input type="time" id="notifDailyTime" value="20:00"></label>
-          <p class="muted hint">Nudges you after this time if nothing was logged today.</p>
-          <label class="field-block notif-toggle"><input type="checkbox" id="notifBudgetEnabled" checked> Monthly budget alerts</label>
-          <label class="field-block">Warn at <input type="number" id="notifBudgetWarnPct" min="50" max="99" value="80" class="input-compact"> % of budget</label>
-          <label class="field-block notif-toggle"><input type="checkbox" id="notifCatBudgetEnabled" checked> Category budget alerts</label>
-          <label class="field-block notif-toggle"><input type="checkbox" id="notifBillsEnabled" checked> Bill due reminders</label>
-          <label class="field-block notif-toggle"><input type="checkbox" id="notifBackupEnabled"> Backup reminders (30+ days)</label>
-          <p class="muted hint">Reminders fire when the app is open or in the background. Install to home screen for best results on mobile.</p>
-        </div>
-        <div class="form-card">
-          <h4>PIN lock</h4>
-          <p id="pinStatus" class="muted"></p>
-          <div class="row-2">
-            <input type="password" id="newPin" placeholder="New PIN (4–6 digits)" inputmode="numeric" maxlength="6">
-            <input type="password" id="confirmPin" placeholder="Confirm PIN" inputmode="numeric" maxlength="6">
-          </div>
-          <div class="row-2">
-            <button type="button" id="setPinBtn" class="btn">Set PIN</button>
-            <button type="button" id="removePinBtn" class="btn btn-secondary">Remove PIN</button>
-          </div>
-        </div>
-        <div class="form-card">
-          <h4>Auto-categorization</h4>
-          <div id="autoRulesList"></div>
-          <div class="row-2"><input type="text" id="rulePattern" placeholder='If merchant contains…'><select id="ruleCat"></select></div>
-          <button type="button" id="addRuleBtn" class="btn">Add rule</button>
-        </div>
-      </div>
 
-      <div class="tab-pane" data-pane="data">
-        <div class="form-card update-card">
-          <h4>App update</h4>
-          <div id="updateStatus" class="muted"></div>
-          <div class="row-2" style="margin-top:10px">
-            <button type="button" id="updateAppBtn" class="btn">Update now</button>
-            <button type="button" id="checkUpdateBtn" class="btn btn-secondary">Check</button>
-          </div>
+        <p class="settings-hub-section-label muted">Data</p>
+        <div class="settings-hub-card">
+          <button type="button" class="settings-hub-row" data-settings-screen="data">
+            <span class="settings-hub-glyph" aria-hidden="true">D</span>
+            <span class="settings-hub-row-text">
+              <span class="settings-hub-row-title">Data &amp; backup</span>
+              <span class="settings-hub-row-sub muted">Updates, export, import, erase</span>
+            </span>
+            <span class="settings-hub-chev" aria-hidden="true">›</span>
+          </button>
         </div>
-        <div class="form-card">
-          <h4>Backup folder</h4>
-          <p id="backupFolderStatus" class="muted"></p>
-          <div class="row-2">
-            <button type="button" id="pickBackupFolderBtn" class="btn">Choose folder</button>
-            <button type="button" id="restoreFromFolderBtn" class="btn btn-secondary">Restore</button>
-          </div>
-          <p class="muted hint">Saves <code>ledger-core-backup.json</code> for restore after updates.</p>
-        </div>
-        <div class="form-card">
-          <h4>Export</h4>
-          <button type="button" id="exportJsonBtn" class="btn">JSON backup</button>
-          <button type="button" id="exportCsvBtn" class="btn btn-secondary">CSV</button>
-          <button type="button" id="exportPdfBtn" class="btn btn-secondary">PDF report</button>
-          <button type="button" id="exportEncBtn" class="btn btn-secondary">Encrypted</button>
-        </div>
-        <div class="form-card">
-          <h4>Import</h4>
-          <label class="btn btn-secondary file-btn">JSON<input type="file" id="importJsonInput" accept=".json" hidden></label>
-          <label class="btn btn-secondary file-btn">CSV<input type="file" id="importCsvInput" accept=".csv,text/csv" hidden></label>
-          <label class="btn btn-secondary file-btn">Encrypted<input type="file" id="importEncInput" accept=".json" hidden></label>
-        </div>
-        <button type="button" id="clearDataBtn" class="btn btn-danger">Clear all data</button>
-      </div>
 
-      <div class="tab-pane" data-pane="organize">
-        <div class="form-card">
-          <h4>Categories</h4>
-          <div id="categoriesList"></div>
-          <div class="row-2">
-            <input type="text" id="newCatName" placeholder="Name">
-            <select id="newCatType"><option value="expense">Expense</option><option value="income">Income</option></select>
-          </div>
-          <div class="row-2">
-            <input type="text" id="newCatIcon" placeholder="Icon emoji" autocomplete="off">
-            <input type="color" id="newCatColor" value="#64748b">
-          </div>
-          <div class="emoji-picks" id="catEmojiPicks" aria-label="Pick icon">
-            <button type="button" class="emoji-pick" data-emoji="🍔">🍔</button>
-            <button type="button" class="emoji-pick" data-emoji="🚗">🚗</button>
-            <button type="button" class="emoji-pick" data-emoji="🛍️">🛍️</button>
-            <button type="button" class="emoji-pick" data-emoji="📄">📄</button>
-            <button type="button" class="emoji-pick" data-emoji="💊">💊</button>
-            <button type="button" class="emoji-pick" data-emoji="🎬">🎬</button>
-            <button type="button" class="emoji-pick" data-emoji="💼">💼</button>
-            <button type="button" class="emoji-pick" data-emoji="🏠">🏠</button>
-            <button type="button" class="emoji-pick" data-emoji="✈️">✈️</button>
-            <button type="button" class="emoji-pick" data-emoji="🎁">🎁</button>
-            <button type="button" class="emoji-pick" data-emoji="📦">📦</button>
-          </div>
-          <label class="field-block">Parent category (optional)
-            <select id="newCatParent"><option value="">No parent (top-level)</option></select>
-          </label>
-          <p class="muted hint">Choose a parent to create a subcategory (e.g. Food → Groceries).</p>
-          <button type="button" id="addCatBtn" class="btn">Add category</button>
+        <p class="settings-hub-section-label muted">Library</p>
+        <div class="settings-hub-card">
+          <button type="button" class="settings-hub-row" data-settings-screen="organize">
+            <span class="settings-hub-glyph" aria-hidden="true">C</span>
+            <span class="settings-hub-row-text">
+              <span class="settings-hub-row-title">Categories &amp; tags</span>
+              <span class="settings-hub-row-sub muted">Icons, parents, tax flag</span>
+            </span>
+            <span class="settings-hub-chev" aria-hidden="true">›</span>
+          </button>
         </div>
-        <div class="form-card">
-          <h4>Tags</h4>
-          <div id="tagsList"></div>
-          <div class="row-2"><input type="text" id="newTagName" placeholder="Tag name"><button type="button" id="addTagBtn" class="btn">Add</button></div>
+
+        <div class="settings-hub-card settings-hub-card-single">
+          <button type="button" class="settings-hub-row" data-settings-screen="about">
+            <span class="settings-hub-glyph" aria-hidden="true">i</span>
+            <span class="settings-hub-row-text">
+              <span class="settings-hub-row-title">About</span>
+              <span class="settings-hub-row-sub muted">Version &amp; source</span>
+            </span>
+            <span class="settings-hub-chev" aria-hidden="true">›</span>
+          </button>
         </div>
       </div>
 
-      <div class="tab-pane" data-pane="about">
-        <div class="form-card about-panel" id="aboutPanelContent"></div>
+      <div id="settingsDrillView" class="settings-drill hidden" aria-hidden="true">
+        <header class="settings-drill-header">
+          <button type="button" id="settingsBackBtn" class="settings-drill-back">← Back</button>
+          <h3 id="settingsDrillTitle" class="settings-drill-title">—</h3>
+          <span class="settings-drill-spacer" aria-hidden="true"></span>
+        </header>
+        <div class="settings-drill-scroll">
+
+          <div class="settings-drill-pane" id="settings-pane-appearance" data-settings-screen="appearance" hidden>
+            <div class="settings-stack">
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">A</span>
+                  <div>
+                    <h4 class="settings-card-title">Look &amp; currency</h4>
+                    <p class="settings-card-desc muted">Theme and how amounts are shown.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body settings-split">
+                  <button type="button" id="themeToggleBtn" class="btn btn-secondary settings-theme-btn">Switch theme</button>
+                  <label class="field-block settings-field-grow">Currency
+                    <select id="currencySelect" class="settings-select"></select>
+                  </label>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="settings-drill-pane" id="settings-pane-notifications" data-settings-screen="notifications" hidden>
+            <div class="settings-stack">
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">N</span>
+                  <div>
+                    <h4 class="settings-card-title">Notifications</h4>
+                    <p class="settings-card-desc muted">Reminders while the app is open or in the background.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <div class="settings-banner" id="notifPermBanner">
+                    <p id="notifPermStatus" class="settings-banner-text muted"></p>
+                    <div class="settings-banner-actions">
+                      <button type="button" id="notifEnableBtn" class="btn btn-secondary btn-sm">Enable notifications</button>
+                      <button type="button" id="notifTestBtn" class="btn btn-ghost btn-sm">Test</button>
+                    </div>
+                  </div>
+                  <div class="settings-divider"></div>
+                  <div class="settings-toggle-list">
+                    <label class="settings-toggle-row notif-toggle">
+                      <span class="settings-toggle-copy">
+                        <span class="settings-toggle-name">Daily expense reminder</span>
+                        <span class="muted settings-toggle-hint">After this time if nothing logged today</span>
+                      </span>
+                      <input type="checkbox" id="notifDailyEnabled" checked class="settings-checkbox">
+                    </label>
+                    <label class="field-block settings-time-row">Reminder time
+                      <input type="time" id="notifDailyTime" value="20:00">
+                    </label>
+                    <label class="settings-toggle-row notif-toggle">
+                      <span class="settings-toggle-copy">
+                        <span class="settings-toggle-name">Monthly budget alerts</span>
+                        <span class="muted settings-toggle-hint">When you approach your limit</span>
+                      </span>
+                      <input type="checkbox" id="notifBudgetEnabled" checked class="settings-checkbox">
+                    </label>
+                    <label class="field-block settings-inline-field">Warn at
+                      <span class="settings-inline-inputs">
+                        <input type="number" id="notifBudgetWarnPct" min="50" max="99" value="80" class="input-compact">
+                        <span class="muted">% of budget</span>
+                      </span>
+                    </label>
+                    <label class="settings-toggle-row notif-toggle">
+                      <span class="settings-toggle-copy">
+                        <span class="settings-toggle-name">Category budget alerts</span>
+                      </span>
+                      <input type="checkbox" id="notifCatBudgetEnabled" checked class="settings-checkbox">
+                    </label>
+                    <label class="settings-toggle-row notif-toggle">
+                      <span class="settings-toggle-copy">
+                        <span class="settings-toggle-name">Bill due reminders</span>
+                      </span>
+                      <input type="checkbox" id="notifBillsEnabled" checked class="settings-checkbox">
+                    </label>
+                    <label class="settings-toggle-row notif-toggle">
+                      <span class="settings-toggle-copy">
+                        <span class="settings-toggle-name">Backup reminders</span>
+                        <span class="muted settings-toggle-hint">If no backup in 30+ days</span>
+                      </span>
+                      <input type="checkbox" id="notifBackupEnabled" class="settings-checkbox">
+                    </label>
+                  </div>
+                  <p class="muted hint settings-footnote">Install to home screen for the most reliable alerts on mobile.</p>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="settings-drill-pane" id="settings-pane-security" data-settings-screen="security" hidden>
+            <div class="settings-stack">
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">P</span>
+                  <div>
+                    <h4 class="settings-card-title">PIN lock</h4>
+                    <p class="settings-card-desc muted">Optional 4–6 digit PIN when opening the app.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <p id="pinStatus" class="settings-status muted"></p>
+                  <div class="row-2">
+                    <input type="password" id="newPin" placeholder="New PIN (4–6 digits)" inputmode="numeric" maxlength="6" autocomplete="new-password">
+                    <input type="password" id="confirmPin" placeholder="Confirm PIN" inputmode="numeric" maxlength="6" autocomplete="new-password">
+                  </div>
+                  <div class="row-2">
+                    <button type="button" id="setPinBtn" class="btn">Set PIN</button>
+                    <button type="button" id="removePinBtn" class="btn btn-secondary">Remove PIN</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="settings-drill-pane" id="settings-pane-rules" data-settings-screen="rules" hidden>
+            <div class="settings-stack">
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">R</span>
+                  <div>
+                    <h4 class="settings-card-title">Auto-categorization</h4>
+                    <p class="settings-card-desc muted">If merchant text contains a phrase, pick a category.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <div id="autoRulesList" class="settings-rules-host"></div>
+                  <div class="settings-rule-add">
+                    <input type="text" id="rulePattern" placeholder="Merchant contains…" class="settings-input-grow">
+                    <select id="ruleCat" class="settings-rule-cat"></select>
+                    <button type="button" id="addRuleBtn" class="btn">Add rule</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="settings-drill-pane" id="settings-pane-data" data-settings-screen="data" hidden>
+            <div class="settings-stack">
+              <section class="settings-card settings-card-accent">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">U</span>
+                  <div>
+                    <h4 class="settings-card-title">App update</h4>
+                    <p class="settings-card-desc muted">Get fixes and features — your data is backed up first.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <div id="updateStatus" class="settings-status muted"></div>
+                  <div class="row-2 settings-actions-tight">
+                    <button type="button" id="updateAppBtn" class="btn">Update now</button>
+                    <button type="button" id="checkUpdateBtn" class="btn btn-secondary">Check for update</button>
+                  </div>
+                </div>
+              </section>
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">B</span>
+                  <div>
+                    <h4 class="settings-card-title">Backup folder</h4>
+                    <p class="settings-card-desc muted">Auto-save JSON for quick restore after updates.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <p id="backupFolderStatus" class="settings-status muted"></p>
+                  <div class="row-2">
+                    <button type="button" id="pickBackupFolderBtn" class="btn">Choose folder</button>
+                    <button type="button" id="restoreFromFolderBtn" class="btn btn-secondary">Restore from folder</button>
+                  </div>
+                  <p class="muted hint">Writes <code>ledger-core-backup.json</code> when supported by your browser.</p>
+                </div>
+              </section>
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">E</span>
+                  <div>
+                    <h4 class="settings-card-title">Export</h4>
+                    <p class="settings-card-desc muted">Download a copy of your data.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <div class="settings-export-grid">
+                    <button type="button" id="exportJsonBtn" class="settings-export-tile btn">JSON backup</button>
+                    <button type="button" id="exportCsvBtn" class="settings-export-tile btn btn-secondary">CSV</button>
+                    <button type="button" id="exportPdfBtn" class="settings-export-tile btn btn-secondary">PDF report</button>
+                    <button type="button" id="exportEncBtn" class="settings-export-tile btn btn-secondary">Encrypted</button>
+                  </div>
+                </div>
+              </section>
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">I</span>
+                  <div>
+                    <h4 class="settings-card-title">Import</h4>
+                    <p class="settings-card-desc muted">Merge or replace from a file you already have.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <div class="settings-import-row">
+                    <label class="btn btn-secondary file-btn settings-import-btn">JSON<input type="file" id="importJsonInput" accept=".json" hidden></label>
+                    <label class="btn btn-secondary file-btn settings-import-btn">CSV<input type="file" id="importCsvInput" accept=".csv,text/csv" hidden></label>
+                    <label class="btn btn-secondary file-btn settings-import-btn">Encrypted<input type="file" id="importEncInput" accept=".json" hidden></label>
+                  </div>
+                </div>
+              </section>
+              <section class="settings-card settings-card-danger" aria-labelledby="settings-danger-title">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph settings-card-glyph-warn" aria-hidden="true">!</span>
+                  <div>
+                    <h4 id="settings-danger-title" class="settings-card-title">Danger zone</h4>
+                    <p class="settings-card-desc muted">This cannot be undone. Export first if you need a copy.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <button type="button" id="clearDataBtn" class="btn btn-danger settings-danger-btn">Erase all local data</button>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="settings-drill-pane" id="settings-pane-organize" data-settings-screen="organize" hidden>
+            <div class="settings-stack">
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">C</span>
+                  <div>
+                    <h4 class="settings-card-title">Categories</h4>
+                    <p class="settings-card-desc muted">Icons, colors, subcategories (pick a parent), and tax flag per row.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <div id="categoriesList" class="settings-list-host"></div>
+                  <div class="settings-new-block">
+                    <p class="section-label">Add category</p>
+                    <div class="row-2">
+                      <input type="text" id="newCatName" placeholder="Name" autocomplete="off">
+                      <select id="newCatType"><option value="expense">Expense</option><option value="income">Income</option></select>
+                    </div>
+                    <div class="row-2">
+                      <input type="text" id="newCatIcon" placeholder="Icon emoji" autocomplete="off">
+                      <input type="color" id="newCatColor" value="#64748b" title="Color">
+                    </div>
+                    <div class="emoji-picks" id="catEmojiPicks" aria-label="Pick icon">
+                      <button type="button" class="emoji-pick" data-emoji="🍔">🍔</button>
+                      <button type="button" class="emoji-pick" data-emoji="🚗">🚗</button>
+                      <button type="button" class="emoji-pick" data-emoji="🛍️">🛍️</button>
+                      <button type="button" class="emoji-pick" data-emoji="📄">📄</button>
+                      <button type="button" class="emoji-pick" data-emoji="💊">💊</button>
+                      <button type="button" class="emoji-pick" data-emoji="🎬">🎬</button>
+                      <button type="button" class="emoji-pick" data-emoji="💼">💼</button>
+                      <button type="button" class="emoji-pick" data-emoji="🏠">🏠</button>
+                      <button type="button" class="emoji-pick" data-emoji="✈️">✈️</button>
+                      <button type="button" class="emoji-pick" data-emoji="🎁">🎁</button>
+                      <button type="button" class="emoji-pick" data-emoji="📦">📦</button>
+                    </div>
+                    <label class="field-block">Parent <span class="muted">(optional — subcategory)</span>
+                      <select id="newCatParent"><option value="">None — top level</option></select>
+                    </label>
+                    <button type="button" id="addCatBtn" class="btn">Add category</button>
+                  </div>
+                </div>
+              </section>
+              <section class="settings-card">
+                <header class="settings-card-head">
+                  <span class="settings-card-glyph" aria-hidden="true">T</span>
+                  <div>
+                    <h4 class="settings-card-title">Tags</h4>
+                    <p class="settings-card-desc muted">Use on transactions for flexible grouping.</p>
+                  </div>
+                </header>
+                <div class="settings-card-body">
+                  <div id="tagsList" class="settings-tags-host"></div>
+                  <div class="settings-tag-add row-2">
+                    <input type="text" id="newTagName" placeholder="New tag name" autocomplete="off">
+                    <button type="button" id="addTagBtn" class="btn">Add tag</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="settings-drill-pane" id="settings-pane-about" data-settings-screen="about" hidden>
+            <div class="settings-stack">
+              <div class="settings-card about-panel settings-about-card" id="aboutPanelContent"></div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
-  </div>
 
   <div id="updateBanner" class="update-banner hidden" role="status">
     <span>A new version is available</span>
@@ -879,6 +1140,42 @@
     </div>
   </div>
 
+  <!-- Add / edit due item (popup) -->
+  <div class="popup-overlay" id="dueAddPopup" aria-hidden="true">
+    <div class="popup popup-sm due-add-popup">
+      <div class="popup-head">
+        <h3 id="dueAddTitle">Add due</h3>
+        <button type="button" class="popup-close" id="dueAddPopupClose" aria-label="Close">✕</button>
+      </div>
+      <div class="popup-body">
+        <form id="dueAddForm" data-due-form class="form-card compact">
+          <div class="row-2">
+            <div class="field">
+              <label for="dueAmtInp">Amount</label>
+              <input id="dueAmtInp" type="number" name="dueAmount" placeholder="0.00" required min="0" step="0.01" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="dueDateInp">Due date</label>
+              <input id="dueDateInp" type="date" name="dueDate" title="Optional">
+            </div>
+          </div>
+          <div class="field">
+            <label for="dueAddCat">Category</label>
+            <select id="dueAddCat" name="dueCategoryId" required></select>
+          </div>
+          <div class="field">
+            <label for="dueNotesInp">Notes</label>
+            <textarea id="dueNotesInp" name="dueNotes" rows="3" placeholder="Who / what, reference…"></textarea>
+          </div>
+          <div class="row-2">
+            <button type="submit" class="btn">Save</button>
+            <button type="button" class="btn btn-secondary due-cancel-edit">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- More menu popup -->
   <div class="popup-overlay" id="morePopup" aria-hidden="true">
     <div class="popup popup-sm">
@@ -892,6 +1189,7 @@
         <button type="button" class="more-link" data-panel="wallets"><span class="more-icon">💳</span><span class="more-label">Wallets</span></button>
         <button type="button" class="more-link" data-panel="budget"><span class="more-icon">📊</span><span class="more-label">Budget</span></button>
         <button type="button" class="more-link" data-panel="bills"><span class="more-icon">📅</span><span class="more-label">Bills</span></button>
+        <button type="button" class="more-link" data-panel="due"><span class="more-icon">⏳</span><span class="more-label">Due</span></button>
         <button type="button" class="more-link" data-panel="goals"><span class="more-icon">🎯</span><span class="more-label">Goals</span></button>
         <button type="button" class="more-link" data-panel="events"><span class="more-icon">✈️</span><span class="more-label">Events</span></button>
         <button type="button" class="more-link" data-panel="mileage"><span class="more-icon">🚗</span><span class="more-label">Mileage</span></button>

@@ -1,5 +1,5 @@
 const DB_NAME = "LedgerCoreDB";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export const STORES = {
   TX: "transactions",
@@ -13,6 +13,7 @@ export const STORES = {
   WALLETS: "wallets",
   AUTO_RULES: "auto_rules",
   MILEAGE: "mileage",
+  DUES: "pending_dues",
   SETTINGS: "settings",
 };
 
@@ -81,6 +82,9 @@ function openDB() {
         if (!db.objectStoreNames.contains(STORES.MILEAGE)) {
           db.createObjectStore(STORES.MILEAGE, { keyPath: "id", autoIncrement: true });
         }
+        if (!db.objectStoreNames.contains(STORES.DUES)) {
+          db.createObjectStore(STORES.DUES, { keyPath: "id", autoIncrement: true });
+        }
         if (!db.objectStoreNames.contains(STORES.SETTINGS)) {
           db.createObjectStore(STORES.SETTINGS, { keyPath: "key" });
         }
@@ -103,6 +107,35 @@ export async function initDB() {
   await migrateTimeField();
   await migrateCategoryFields();
   await dedupeCategories();
+  await migrateDedupeWallets();
+}
+
+async function migrateDedupeWallets() {
+  const wallets = await getAll(STORES.WALLETS);
+  const key = (w) => `${String(w.type || "other").toLowerCase()}|${String(w.name || "").trim().toLowerCase()}`;
+  const groups = new Map();
+  for (const w of wallets) {
+    const k = key(w);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(w);
+  }
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    group.sort((a, b) => {
+      if (Boolean(a.isDefault) !== Boolean(b.isDefault)) return b.isDefault ? 1 : -1;
+      return a.id - b.id;
+    });
+    const keep = group[0];
+    for (const drop of group.slice(1)) {
+      const txs = await getAll(STORES.TX);
+      for (const tx of txs) {
+        if (Number(tx.walletId) === Number(drop.id)) {
+          await put(STORES.TX, { ...tx, walletId: keep.id });
+        }
+      }
+      await remove(STORES.WALLETS, drop.id);
+    }
+  }
 }
 
 async function migrateCategoryFields() {

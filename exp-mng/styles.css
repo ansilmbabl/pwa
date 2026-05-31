@@ -1212,6 +1212,504 @@ canvas { max-width: 100%; height: auto !important; }
   padding: 24px 16px;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Settings hub (full panel UX) ── */
+.settings-panel {
+  padding-bottom: 8px;
+}
+
+.settings-hero {
+  margin-bottom: 6px;
+  padding: 4px 0 2px;
+}
+
+.settings-hero-title {
+  margin: 0 0 4px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.settings-hero-lead {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 36em;
+}
+
+.settings-hub.hidden,
+.settings-drill.hidden {
+  display: none !important;
+}
+
+.settings-hub-hero {
+  margin-bottom: 6px;
+}
+
+.settings-hub-section-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 16px 0 8px;
+  padding-left: 2px;
+}
+
+.settings-hub-section-label:first-of-type {
+  margin-top: 0;
+}
+
+.settings-hub-card {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-elevated);
+  margin-bottom: 10px;
+}
+
+.settings-hub-card-single {
+  margin-top: 8px;
+}
+
+.settings-hub-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 14px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.settings-hub-card .settings-hub-row:last-child {
+  border-bottom: none;
+}
+
+.settings-hub-row:active {
+  background: var(--bg-hover);
+}
+
+.settings-hub-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.settings-hub-glyph {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.settings-hub-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-hub-row-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.settings-hub-row-sub {
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
+.settings-hub-chev {
+  color: var(--text-dim);
+  font-size: 1.25rem;
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+.settings-drill {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.settings-drill:not(.hidden) {
+  min-height: calc(100vh - var(--nav-h) - 100px);
+}
+
+.settings-drill-header {
+  display: grid;
+  grid-template-columns: minmax(56px, auto) 1fr minmax(56px, auto);
+  align-items: center;
+  gap: 8px;
+  padding: calc(8px + env(safe-area-inset-top)) 8px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  background: rgba(10, 10, 11, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+html[data-theme="light"] .settings-drill-header {
+  background: rgba(244, 244, 245, 0.94);
+}
+
+.settings-drill-back {
+  padding: 8px 10px;
+  font-size: 0.88rem;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  justify-self: start;
+}
+
+.settings-drill-back:active {
+  opacity: 0.85;
+}
+
+.settings-drill-title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.settings-drill-spacer {
+  width: 56px;
+  justify-self: end;
+}
+
+.settings-drill-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 0 28px;
+}
+
+.settings-drill-pane[hidden] {
+  display: none !important;
+}
+
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.settings-card-accent {
+  border-color: rgba(45, 212, 191, 0.35);
+  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.08);
+}
+
+.settings-card-danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.06), var(--bg-elevated));
+}
+
+.settings-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-card-glyph {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.settings-card-glyph-warn {
+  color: var(--expense);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.settings-card-title {
+  margin: 0 0 2px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.settings-card-desc {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.settings-card-body {
+  padding: 14px 16px 16px;
+}
+
+.settings-card-body > *:last-child {
+  margin-bottom: 0;
+}
+
+.settings-split {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 380px) {
+  .settings-split {
+    flex-direction: row;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .settings-theme-btn {
+    flex: 0 0 auto;
+  }
+  .settings-field-grow {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+}
+
+.settings-theme-btn {
+  width: 100%;
+}
+
+.settings-select,
+.settings-input-grow {
+  width: 100%;
+}
+
+.settings-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+}
+
+.settings-banner-text {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.settings-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
+
+.settings-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.settings-toggle-row:last-of-type {
+  border-bottom: none;
+}
+
+.settings-toggle-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-toggle-name {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.settings-toggle-hint {
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.settings-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.settings-time-row,
+.settings-inline-field {
+  margin: 8px 0 4px;
+  padding-left: 0;
+}
+
+.settings-inline-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.settings-footnote {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+}
+
+.settings-status {
+  margin: 0 0 10px;
+  font-size: 0.84rem;
+}
+
+.settings-actions-tight {
+  margin-top: 4px;
+}
+
+.settings-export-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settings-export-tile {
+  min-height: 48px;
+  font-size: 0.82rem;
+  padding: 10px 8px;
+}
+
+.settings-import-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-import-btn {
+  flex: 1 1 auto;
+  min-width: calc(33% - 8px);
+  justify-content: center;
+}
+
+.settings-danger-btn {
+  width: 100%;
+}
+
+.settings-new-block {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+
+.settings-new-block .section-label {
+  margin-bottom: 10px;
+}
+
+.settings-rules-host {
+  margin-bottom: 4px;
+}
+
+.settings-rules-host .list-card {
+  margin-bottom: 8px;
+}
+
+.settings-rule-add {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.settings-rule-cat {
+  width: 100%;
+}
+
+.settings-list-host .settings-row {
+  padding: 12px 0;
+  border-radius: var(--radius-sm);
+  border-bottom-color: var(--border);
+}
+
+.settings-list-host .settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-tags-host {
+  margin-bottom: 8px;
+}
+
+.settings-tag-add {
+  margin-top: 4px;
+}
+
+.settings-about-card.about-panel {
+  padding: 20px;
+}
+
+.settings-about-card .about-link {
+  margin-top: 16px;
+}
+
 .hidden { display: none !important; }
 
 /* ── Bottom nav (floating pill) ── */
@@ -2192,3 +2690,206 @@ html[data-theme="light"] .navbar {
 #panel-taxcalc .field { margin-bottom: 10px; }
 #panel-taxcalc .hint { font-size: 0.78rem; margin: 6px 0; }
 #panel-taxcalc input, #panel-taxcalc select { min-height: 44px; padding: 10px 12px; }
+
+/* ── Due (pending payments) ── */
+.due-stat-line {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+}
+
+.due-card {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.due-card-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.due-card-amt {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.due-card-meta {
+  font-size: 0.8rem;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.due-overdue {
+  color: var(--expense);
+  font-weight: 600;
+}
+
+.due-card-overdue {
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.due-pay-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.due-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.due-card-done .due-card-amt {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-muted);
+}
+
+.due-bills-embed {
+  padding: 0 0 16px;
+}
+
+.due-bills-embed .muted.hint {
+  margin: 0 16px 12px;
+}
+
+.due-bills-embed .due-stat-line,
+.due-bills-embed .section-label {
+  padding: 0 16px;
+}
+
+.due-bills-embed [data-due-open-list] {
+  padding: 0 16px;
+}
+
+.due-recur-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dash-due-strip {
+  margin: 12px 0 4px;
+}
+
+.dash-due-strip-btn {
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: inherit;
+}
+
+.dash-due-strip-btn:active {
+  opacity: 0.92;
+}
+
+.dash-due-strip-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.popup-md { max-width: 400px; }
+
+.due-popup .popup-body {
+  padding-top: 0;
+}
+
+.due-popup-tabs {
+  margin-bottom: 12px;
+}
+
+.due-popup-hint {
+  font-size: 0.82rem;
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.due-popup-list {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.due-popup-pane {
+  display: none;
+}
+
+.due-popup-pane.active {
+  display: block;
+}
+
+.due-header-badge {
+  display: inline-block;
+  min-width: 1.25rem;
+  padding: 0 5px;
+  margin-left: 2px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+  background: var(--accent-soft, rgba(45, 212, 191, 0.2));
+  color: var(--accent);
+  vertical-align: middle;
+}
+
+.due-card-notes {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.due-card-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-due-strip-detail {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.due-panel-toolbar {
+  padding: 0 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.due-panel-body {
+  padding: 0 16px 24px;
+}
+
+.due-panel-list {
+  margin-top: 8px;
+}
+
+.due-card-cat {
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+
+.due-add-popup .form-card.compact {
+  margin: 0;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+}

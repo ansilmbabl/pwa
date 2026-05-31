@@ -1,4 +1,4 @@
-const CACHE_NAME = "ledger-v26-init-fix";
+const CACHE_NAME = "ledger-v33-due-panel-add-popup";
 const ASSETS = [
   "./",
   "./index.html",
@@ -35,9 +35,11 @@ const ASSETS = [
   "./js/transactions.js",
   "./js/budget.js",
   "./js/bills.js",
+  "./js/due.js",
   "./js/goals.js",
   "./js/reports.js",
   "./js/settings.js",
+  "./js/settings-nav.js",
   "./js/app.js",
 ];
 
@@ -60,12 +62,21 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
   if (event.data?.type === "SHOW_NOTIFICATION") {
     const { title, body, tag, icon } = event.data;
+    const scope = self.registration.scope;
+    const iconUrl = (() => {
+      try {
+        return new URL(icon || "icons/icon-192.png", scope).href;
+      } catch {
+        return icon || `${scope}icons/icon-192.png`;
+      }
+    })();
     event.waitUntil(
       self.registration.showNotification(title, {
         body,
-        icon: icon || "./icons/icon-192.png",
-        badge: "./icons/icon-192.png",
+        icon: iconUrl,
+        badge: iconUrl,
         tag: tag || "ledger-core",
+        vibrate: [120, 80, 120],
       }),
     );
   }

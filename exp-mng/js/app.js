@@ -13,6 +13,7 @@ import {
 import { DASH_PERIOD_LABELS } from "./dates.js";
 import { renderBudgetPanel, setMonthlyBudget, checkBudgetAlerts, renderCustomCategories, addCustomCategory, renderTagsManager, addTag, refreshCategoryParentSelect } from "./budget.js";
 import { renderBillsPanel, addRecurringRule } from "./bills.js";
+import { renderDuePanels, bindDueGlobal, bindDueAddPopupUi, migrateDueCleanup } from "./due.js";
 import {
   bindNotificationSettings, loadNotificationSettingsForm, renderNotificationSettings,
   requestNotificationPermission, notificationPermission, runNotificationChecks, startNotificationScheduler,
@@ -44,6 +45,12 @@ import {
 import { bindTaxCalculator, renderTaxCalculatorPanel } from "./tax-ui.js";
 import { renderSpendingCalendar, bindCalendarNav } from "./calendar.js";
 import { renderAboutPanel } from "./about.js";
+import {
+  bindSettingsDrillNav,
+  openSettingsHub,
+  openSettingsScreen,
+  openSettingsScreenFromLegacyPane,
+} from "./settings-nav.js";
 
 let deferredPrompt;
 
@@ -133,12 +140,14 @@ async function refreshAll() {
     await renderMileagePanel();
     await checkBudgetAlerts();
     await runNotificationChecks();
+    await renderDuePanels();
   } finally {
     setLoading(false);
   }
 }
 
 function switchTab(target, btn) {
+  if (target !== "settings") openSettingsHub();
   document.querySelectorAll(".view-panel").forEach((p) => p.classList.remove("active"));
   document.querySelectorAll(".nav-tab").forEach((t) => t.classList.remove("active"));
   document.getElementById(`panel-${target}`)?.classList.add("active");
@@ -154,11 +163,13 @@ function switchTab(target, btn) {
     renderUpdatePanel();
     loadNotificationSettingsForm();
     renderAboutPanel();
+    openSettingsHub();
   }
   if (target === "wallets") renderWalletsPanel();
   if (target === "calendar") renderSpendingCalendar();
   if (target === "mileage") renderMileagePanel();
   if (target === "taxcalc") renderTaxCalculatorPanel();
+  if (target === "due") renderDuePanels();
 }
 
 function openMorePopup() {
@@ -213,6 +224,7 @@ function bindNav() {
     resetForm();
     openAddSheet();
   });
+  document.getElementById("dueHeaderBtn")?.addEventListener("click", () => switchTab("due"));
   document.getElementById("refreshBtn")?.addEventListener("click", refreshAll);
 }
 
@@ -301,7 +313,7 @@ function bindBills() {
   });
   document.getElementById("enableNotifBtn")?.addEventListener("click", async () => {
     switchTab("settings");
-    activatePane(document.getElementById("panel-settings"), "general");
+    openSettingsScreen("notifications");
     await loadNotificationSettingsForm();
     if (notificationPermission() === "default") await requestNotificationPermission();
     renderNotificationSettings();
@@ -419,6 +431,15 @@ function bindReports() {
   });
 }
 
+function tourActivatePane(panelId, pane) {
+  if (panelId === "panel-settings") {
+    openSettingsScreenFromLegacyPane(pane);
+    return;
+  }
+  const root = document.getElementById(panelId);
+  if (root && pane) activatePane(root, pane);
+}
+
 function bindSettings() {
   document.getElementById("clearDataBtn")?.addEventListener("click", handleClearAll);
   document.getElementById("pickBackupFolderBtn")?.addEventListener("click", async () => {
@@ -497,6 +518,7 @@ function bindSettings() {
       if (input) input.value = btn.dataset.emoji || btn.textContent.trim();
     });
   });
+  bindSettingsDrillNav();
 }
 
 function bindWallets() {
@@ -590,11 +612,25 @@ function bindEvents() {
     `, [{ label: "Close", className: "btn btn-secondary", onClick: () => {} }]);
   });
 
-  document.querySelectorAll(".more-link").forEach((link) => {
+  document.body.addEventListener("click", (e) => {
+    const jump = e.target.closest("[data-tab-jump]");
+    if (jump?.dataset.tabJump) {
+      e.preventDefault();
+      closeMorePopup();
+      switchTab(jump.dataset.tabJump);
+    }
+  });
+
+  document.querySelectorAll(".more-link[data-panel]").forEach((link) => {
     link.addEventListener("click", () => {
       closeMorePopup();
       switchTab(link.dataset.panel);
     });
+  });
+
+  window.addEventListener("app-switch-tab", (e) => {
+    const tab = e.detail;
+    if (typeof tab === "string") switchTab(tab);
   });
 }
 
@@ -634,6 +670,8 @@ export async function initApp() {
   bindNotificationSettings();
   bindCalendarNav(() => renderSpendingCalendar(), openDayReport);
   bindPWA();
+  bindDueAddPopupUi();
+  bindDueGlobal(refreshAll);
   bindEvents();
   bindHistoryControls();
   bindLockEvents();
@@ -644,11 +682,12 @@ export async function initApp() {
     switchTab: (t) => switchTab(t),
     openMore: openMorePopup,
     closeMore: closeMorePopup,
-    activatePane: (panelId, pane) => activatePane(document.getElementById(panelId), pane),
+    activatePane: tourActivatePane,
   });
 
   try {
   await initDB();
+  await migrateDueCleanup();
   await finishUpdateOnLaunch();
   await initTheme();
 
@@ -665,7 +704,7 @@ export async function initApp() {
     switchTab: (t) => switchTab(t),
     openMore: openMorePopup,
     closeMore: closeMorePopup,
-    activatePane: (panelId, pane) => activatePane(document.getElementById(panelId), pane),
+    activatePane: tourActivatePane,
   });
   } catch (err) {
     console.error("initApp failed:", err);

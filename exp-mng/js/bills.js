@@ -1,4 +1,5 @@
 import { STORES, getAll, put, add, remove } from "./db.js";
+import { addDueFromRecurringRule } from "./due.js";
 import { todayStr, addDays, addMonths, daysUntil } from "./dates.js";
 import { formatCurrency, escapeHtml, toast } from "./ui.js";
 import { saveTransaction } from "./transactions.js";
@@ -48,8 +49,23 @@ export async function renderBillsPanel() {
       <div class="list-card">
         <div><strong>${escapeHtml(r.merchant || r.notes || "Recurring")}</strong>
         <span class="muted">${r.frequency} • Next: ${r.nextDate}</span></div>
-        <div>${formatCurrency(r.amount)} <button type="button" class="btn-sm btn-danger del-recur" data-id="${r.id}">✕</button></div>
+        <div class="due-recur-actions">
+          <span>${formatCurrency(r.amount)}</span>
+          <button type="button" class="btn-sm btn-secondary due-from-recur" data-id="${r.id}">Track in Due</button>
+          <button type="button" class="btn-sm btn-danger del-recur" data-id="${r.id}">✕</button>
+        </div>
       </div>`).join("") : `<p class="empty-msg">No recurring rules</p>`;
+
+    const trackInDue = async (id) => {
+      const r = rules.find((x) => x.id === Number(id));
+      if (r) {
+        await addDueFromRecurringRule(r);
+        window.dispatchEvent(new CustomEvent("app-switch-tab", { detail: "due" }));
+      }
+    };
+    list.querySelectorAll(".due-from-recur").forEach((btn) => {
+      btn.onclick = () => trackInDue(btn.dataset.id);
+    });
 
     list.querySelectorAll(".del-recur").forEach((btn) => {
       btn.onclick = async () => {
@@ -70,9 +86,26 @@ export async function renderBillsPanel() {
     document.getElementById("subYearlyTotal").textContent = formatCurrency(monthly * 12 + yearly);
     subs.innerHTML = subscriptions.length ? subscriptions.map((r) => `
       <div class="list-card">
-        <span>${escapeHtml(r.merchant || r.notes)}</span>
-        <span>${formatCurrency(r.amount)}/${r.frequency === "yearly" ? "yr" : "mo"}</span>
+        <div>
+          <strong>${escapeHtml(r.merchant || r.notes)}</strong>
+          <span class="muted">${r.frequency} • Next: ${r.nextDate}</span>
+        </div>
+        <div class="due-recur-actions">
+          <span>${formatCurrency(r.amount)}/${r.frequency === "yearly" ? "yr" : "mo"}</span>
+          <button type="button" class="btn-sm btn-secondary due-from-recur" data-id="${r.id}">Track in Due</button>
+        </div>
       </div>`).join("") : `<p class="empty-msg">No subscriptions tracked</p>`;
+
+    const trackInDueSub = async (id) => {
+      const r = rules.find((x) => x.id === Number(id));
+      if (r) {
+        await addDueFromRecurringRule(r);
+        window.dispatchEvent(new CustomEvent("app-switch-tab", { detail: "due" }));
+      }
+    };
+    subs.querySelectorAll(".due-from-recur").forEach((btn) => {
+      btn.onclick = () => trackInDueSub(btn.dataset.id);
+    });
   }
 
   if (calendar) {

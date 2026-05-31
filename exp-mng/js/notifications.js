@@ -66,15 +66,24 @@ export async function requestNotificationPermission() {
   return (await Notification.requestPermission()) === "granted";
 }
 
+function notificationIconUrl() {
+  try {
+    return new URL("icons/icon-192.png", window.location.href).href;
+  } catch {
+    return "./icons/icon-192.png";
+  }
+}
+
 export async function showAppNotification(title, body, tag = "ledger-core") {
   if (!notificationSupported() || Notification.permission !== "granted") return false;
 
+  const iconAbs = notificationIconUrl();
   const payload = {
     type: "SHOW_NOTIFICATION",
     title,
     body,
     tag,
-    icon: "./icons/icon-192.png",
+    icon: iconAbs,
   };
 
   try {
@@ -87,7 +96,7 @@ export async function showAppNotification(title, body, tag = "ledger-core") {
     /* fall through */
   }
 
-  new Notification(title, { body, icon: "./icons/icon-192.png", tag });
+  new Notification(title, { body, icon: iconAbs, tag });
   return true;
 }
 
@@ -245,11 +254,16 @@ export async function runNotificationChecks() {
   await checkBackupNotification(prefs);
 }
 
+function onWindowFocus() {
+  runNotificationChecks();
+}
+
 export function startNotificationScheduler() {
   if (schedulerId) clearInterval(schedulerId);
   runNotificationChecks();
   schedulerId = setInterval(runNotificationChecks, 60_000);
   document.addEventListener("visibilitychange", onVisibilityChange);
+  window.addEventListener("focus", onWindowFocus);
 }
 
 function onVisibilityChange() {

@@ -88,8 +88,6 @@ export async function renderBudgetPanel() {
 }
 
 export async function checkBudgetAlerts() {
-  if ("Notification" in window && Notification.permission === "granted") return;
-
   const [txs, cats, budget] = await Promise.all([
     getAll(STORES.TX),
     getCategories("expense"),
@@ -130,7 +128,7 @@ export async function addCustomCategory(name, type, color, icon, parentId = null
 export function refreshCategoryParentSelect(cats, type = "expense") {
   const parentSel = document.getElementById("newCatParent");
   if (!parentSel) return;
-  parentSel.innerHTML = `<option value="">No parent (top-level)</option>` +
+  parentSel.innerHTML = `<option value="">None — top level</option>` +
     cats.filter((c) => c.type === type && !c.parentId).map((c) =>
       `<option value="${c.id}">${escapeHtml(c.name)}</option>`
     ).join("");

@@ -44,7 +44,7 @@ export async function setAppCurrency(code) {
 export async function renderThemeSettings() {
   const theme = (await getSetting("theme")) || THEMES.dark;
   const btn = document.getElementById("themeToggleBtn");
-  if (btn) btn.textContent = theme === THEMES.dark ? "Switch to light mode" : "Switch to dark mode";
+  if (btn) btn.textContent = theme === THEMES.dark ? "Use light theme" : "Use dark theme";
   const sel = document.getElementById("currencySelect");
   if (sel) {
     const cur = (await getSetting("currency")) || "INR";

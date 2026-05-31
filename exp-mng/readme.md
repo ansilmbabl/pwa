@@ -24,9 +24,9 @@ Open `http://localhost:8080` (a local server is required for service workers and
 - **Chrome / Android:** Install button in the header, or Add to Home screen
 - **iOS Safari:** Share → Add to Home Screen
 
-Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data**.
+Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data & backup**.
 
-**Updating:** You do not need to uninstall or clear cache manually. Use **Settings → Data → Update now** — it backs up your data, installs the latest version, and reloads. IndexedDB data normally survives updates; the backup is a safety net. If the UI stops responding after clearing cache, hard-refresh once (`Cmd+Shift+R` / `Ctrl+Shift+R`) or unregister the service worker in DevTools → Application.
+**Updating:** Use **Settings → Data & backup → Update now** — it backs up your data, installs the latest version, and reloads. IndexedDB data normally survives updates; the backup is a safety net. If the UI stops responding after clearing cache, hard-refresh once (`Cmd+Shift+R` / `Ctrl+Shift+R`) or unregister the service worker in DevTools → Application.
 
 ---
 
@@ -51,7 +51,7 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - **Settings ⚙** in the top-right header
 - **App tour (?)** — step-by-step guide; auto-shows on first visit
 - **More** menu: Calendar, Wallets, Budget, Bills, Goals, Events, Mileage, Tax calc
-- **Section tabs** inside long screens (Reports, Settings, Budget, Bills, Goals, Events, Wallets, Tax calc)
+- **Section tabs** inside long screens (Reports, Budget, Bills, Goals, Events, Wallets, Tax calc). **Settings** uses a main list + drill-in sub-screens (like system Settings apps).
 - Add-transaction popup tabs: **Essentials · Details** (amount, date, category, payment on Essentials)
 - Obsidian dark theme with **light mode** toggle
 - Sticky filters on History; scroll-to-top on screen change
@@ -129,13 +129,13 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - Runs fully offline — no data sent anywhere
 
 ### Settings & data
-- Tabs: **General · Data · Organize · About**
+- **Main list + drill-in:** tap a row (Appearance, Notifications, PIN lock, Smart rules, Data & backup, Categories & tags, About) — **← Back** returns to the list.
 - **About:** app version, storage info, link to GitHub source
-- **One-click app update** — Data → Update now (auto-backup, activate latest version, reload)
+- **One-click app update** — Data & backup → Update now (auto-backup, activate latest version, reload)
 - Update banner when a new version is detected
-- **Theme:** dark / light
-- **Currency:** INR, USD, EUR, GBP, JPY
-- **Notifications** (General): daily expense reminder, monthly/category budget alerts, bill due reminders, backup reminders (30+ days)
+- **Theme:** dark / light (Appearance)
+- **Currency:** INR, USD, EUR, GBP, JPY (Appearance)
+- **Notifications:** daily expense reminder, monthly/category budget alerts, bill due reminders, backup reminders (30+ days)
 - **PIN lock** (4–6 digits, auto-lock after idle)
 - **Auto-categorization rules** (merchant pattern → category)
 - **Backup folder** (File System Access API) — auto-saves `ledger-core-backup.json`
@@ -154,4 +154,4 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - Vanilla HTML / CSS / JavaScript (ES modules)
 - IndexedDB v4 (`transactions`, `categories`, `tags`, `wallets`, `recurring`, `goals`, `funds`, `events`, `splits`, `auto_rules`, `mileage`, `settings`)
 - No build step; deploy as static files to GitHub Pages
-- Key modules: `app.js`, `transactions.js`, `reports.js`, `category-picker.js`, `calendar.js`, `notifications.js`, `share.js`, `share-image.js`, `export-brand.js`, `tax-india.js`, `sw.js`
+- Key modules: `app.js`, `transactions.js`, `reports.js`, `category-picker.js`, `calendar.js`, `notifications.js`, `share.js`, `share-image.js`, `export-brand.js`, `tax-india.js`, `settings-nav.js`, `sw.js`

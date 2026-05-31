@@ -36,14 +36,14 @@ const STEPS = [
   },
   {
     title: "More features",
-    body: "Wallets, Budget, Bills, Goals, Events, and Mileage — each with tabs inside.",
+    body: "Open <strong>Due</strong> from the header or More for outgoing payments. The <strong>+ Add</strong> button opens a short form; full expense history stays under <strong>History</strong>. Other tools live under More.",
     highlightSel: "#morePopup .popup",
     placement: "above",
     openMore: true,
   },
   {
     title: "Settings",
-    body: "Theme, currency, PIN lock, auto-rules, backup folder, import/export, categories & tags.",
+    body: "Theme, currency, PIN, smart rules, backups, import/export, categories & tags — grouped in Settings.",
     tab: "settings",
     highlight: "settingsBtn",
     placement: "below",
@@ -51,10 +51,10 @@ const STEPS = [
   },
   {
     title: "Backup & share",
-    body: "In Settings → Data tab: export JSON to a folder, import CSV, and share reports.",
+    body: "Open Settings → Data & backup to export JSON, import CSV, and print or share reports.",
     tab: "settings",
     pane: "data",
-    highlightSel: "#panel-settings .section-tabs",
+    highlightSel: "#settings-pane-data",
     placement: "below",
   },
   {

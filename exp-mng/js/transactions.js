@@ -31,7 +31,8 @@ export async function getTransactions() {
   return txs.sort((a, b) => parseDateTime(b.date, b.time) - parseDateTime(a.date, a.time));
 }
 
-export async function saveTransaction(data, skipDupCheck = false) {
+export async function saveTransaction(data, skipDupCheck = false, opts = {}) {
+  const quiet = !!opts.quiet;
   if (!data.amount || data.amount <= 0) throw new Error("Amount must be greater than 0");
   const cats = await getCategories(data.type);
   let categoryId = Number(data.categoryId);
@@ -71,11 +72,11 @@ export async function saveTransaction(data, skipDupCheck = false) {
   if (editId) {
     record.id = editId;
     await put(STORES.TX, record);
-    toast("Transaction updated", "success");
+    if (!quiet) toast("Transaction updated", "success");
     editId = null;
   } else {
     await add(STORES.TX, record);
-    toast("Transaction saved", "success");
+    if (!quiet) toast("Transaction saved", "success");
   }
   await setSetting("lastCategory", { type: data.type, categoryId });
   pendingReceipt = null;
