@@ -1,10 +1,11 @@
 import { exportAllData, importAllData, clearAllData, getSetting, setSetting, getAll, STORES } from "./db.js";
 import { toast } from "./ui.js";
 import { exportCSV, downloadFile } from "./reports.js";
+import { wrapCsvExport, stampJsonExport } from "./export-brand.js";
 import { saveJsonBackup, importJsonFromBackupFolder, pickBackupFolder, getBackupFolderName, supportsFileFolder, BACKUP_JSON } from "./files.js";
 
 export async function exportJSON(saveToFolder = true) {
-  const data = await exportAllData();
+  const data = stampJsonExport(await exportAllData(), { exportType: "full-backup" });
   const json = JSON.stringify(data, null, 2);
   downloadFile(json, `ledger-backup-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
   if (saveToFolder) await saveJsonBackup(json);
@@ -15,7 +16,7 @@ export async function exportJSON(saveToFolder = true) {
 export async function exportCSVFile() {
   const txs = await getAll(STORES.TX);
   if (!txs.length) return toast("Nothing to export", "error");
-  const csv = exportCSV(txs);
+  const csv = wrapCsvExport(exportCSV(txs), { scope: "all-transactions" });
   downloadFile(csv, `ledger-sheet-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
   toast(`Exported ${txs.length} transactions`, "success");
 }
@@ -43,7 +44,7 @@ export async function importFromBackupFolder(merge = false) {
 
 export async function exportEncryptedBackup(password) {
   if (!password) throw new Error("Password required");
-  const data = await exportAllData();
+  const data = stampJsonExport(await exportAllData(), { exportType: "encrypted-backup" });
   const json = JSON.stringify(data);
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);

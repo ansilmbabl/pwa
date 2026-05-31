@@ -10,7 +10,11 @@ import {
   bindMerchantAutoRule, bindReceiptAttach,
 } from "./transactions.js";
 import { renderBudgetPanel, setMonthlyBudget, checkBudgetAlerts, renderCustomCategories, addCustomCategory, renderTagsManager, addTag } from "./budget.js";
-import { renderBillsPanel, addRecurringRule, requestNotificationPermission, checkBillReminders } from "./bills.js";
+import { renderBillsPanel, addRecurringRule } from "./bills.js";
+import {
+  bindNotificationSettings, loadNotificationSettingsForm, renderNotificationSettings,
+  requestNotificationPermission, notificationPermission, runNotificationChecks, startNotificationScheduler,
+} from "./notifications.js";
 import { renderGoalsPanel, addSavingsGoal, addSinkingFund, renderEventsPanel, addEvent, populateEventSelect, renderSplitBillsPanel, addSplitGroup } from "./goals.js";
 import {
   renderReports, setReportMonth, setReportRange, populateMonthPicker, buildPDFHtml, printPDFReport,
@@ -20,7 +24,7 @@ import {
   exportJSON, exportCSVFile, importJSONFile, exportEncryptedBackup, importEncryptedBackup,
   handleClearAll, checkBackupReminder, pickBackupFolder, importFromBackupFolder, renderBackupFolderStatus,
 } from "./settings.js";
-import { shareReport } from "./share.js";
+import { openShareReportSheet } from "./share.js";
 import { getMonthlyBudget } from "./budget.js";
 import { importCSVFile } from "./import.js";
 import { renderWalletsPanel, renderDashWallets, addWallet, transferFunds, populateTxFormSelects } from "./wallets.js";
@@ -79,6 +83,7 @@ async function refreshAll() {
     await renderDashWallets();
     await renderMileagePanel();
     await checkBudgetAlerts();
+    await runNotificationChecks();
   } finally {
     setLoading(false);
   }
@@ -98,6 +103,7 @@ function switchTab(target, btn) {
     renderPinSettings();
     renderRulesPanel();
     renderUpdatePanel();
+    loadNotificationSettingsForm();
   }
   if (target === "wallets") renderWalletsPanel();
   if (target === "mileage") renderMileagePanel();
@@ -237,7 +243,13 @@ function bindBills() {
     activatePane(document.getElementById("panel-bills"), "rules");
     await refreshAll();
   });
-  document.getElementById("enableNotifBtn")?.addEventListener("click", requestNotificationPermission);
+  document.getElementById("enableNotifBtn")?.addEventListener("click", async () => {
+    switchTab("settings");
+    activatePane(document.getElementById("panel-settings"), "general");
+    await loadNotificationSettingsForm();
+    if (notificationPermission() === "default") await requestNotificationPermission();
+    renderNotificationSettings();
+  });
 }
 
 function bindGoals() {
@@ -304,15 +316,7 @@ function bindReports() {
   });
 
   document.getElementById("reportShareBtn")?.addEventListener("click", async () => {
-    const snap = await getReportSnapshot();
-    await shareReport({
-      periodLabel: snap.periodLabel,
-      income: snap.income,
-      expense: snap.expense,
-      net: snap.net,
-      categories: snap.categories,
-      transactions: snap.transactions,
-    });
+    openShareReportSheet(await getReportSnapshot());
   });
   document.getElementById("reportExportCsvBtn")?.addEventListener("click", async () => {
     try {
@@ -327,13 +331,15 @@ function bindReports() {
     } catch (e) { toast(e.message, "error"); }
   });
   document.getElementById("reportExportPdfBtn")?.addEventListener("click", async () => {
-    printPDFReport("Ledger Core Report", await buildPDFHtml());
+    const snap = await getReportSnapshot();
+    printPDFReport("Expense Report", await buildPDFHtml(), { subtitle: snap.periodLabel });
   });
 
   document.getElementById("exportJsonBtn")?.addEventListener("click", exportJSON);
   document.getElementById("exportCsvBtn")?.addEventListener("click", exportCSVFile);
   document.getElementById("exportPdfBtn")?.addEventListener("click", async () => {
-    printPDFReport("Ledger Core Report", await buildPDFHtml());
+    const snap = await getReportSnapshot();
+    printPDFReport("Expense Report", await buildPDFHtml(), { subtitle: snap.periodLabel });
   });
   document.getElementById("exportEncBtn")?.addEventListener("click", async () => {
     const pw = prompt("Encryption password:");
@@ -561,6 +567,7 @@ export async function initApp() {
   bindMileage();
   bindReports();
   bindSettings();
+  bindNotificationSettings();
   bindPWA();
   bindEvents();
   bindHistoryControls();
@@ -579,9 +586,10 @@ export async function initApp() {
 
   await populateSelects();
   await refreshAll();
-  await checkBillReminders();
   await checkBackupReminder();
   await initLock();
+  startNotificationScheduler();
+  await loadNotificationSettingsForm();
 
   maybeShowTourOnFirstVisit({
     switchTab: (t) => switchTab(t),

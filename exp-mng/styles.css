@@ -232,6 +232,29 @@ html[data-theme="light"] .sticky-tabs {
 
 .field-block select { width: 100%; margin-top: 6px; }
 
+.notif-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.notif-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.input-compact {
+  width: 4.5rem;
+  min-height: 40px;
+  display: inline-block;
+  margin: 0 6px;
+  vertical-align: middle;
+}
+
 .hint { margin-top: 8px; font-size: 0.8rem; }
 
 .more-icon {
@@ -1074,6 +1097,103 @@ canvas { max-width: 100%; height: auto !important; }
 }
 
 .modal-actions .btn { flex: 1; }
+
+/* ── Share report sheet ── */
+.share-sheet { max-width: 420px; }
+
+.share-period {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+}
+
+.share-preview {
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.share-preview-stats { margin-bottom: 8px; }
+
+.share-preview-net {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+}
+
+.share-preview-compare {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+}
+
+.share-cat-row,
+.share-tx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 0.82rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.share-cat-row:last-child,
+.share-tx-row:last-child { border-bottom: none; }
+
+.share-tx-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+}
+
+.share-options {
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.share-fmt-chips { margin-bottom: 10px; }
+
+.share-tx-limit select {
+  width: auto;
+  min-width: 4rem;
+  margin-left: 6px;
+}
+
+.share-text-preview {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  max-height: 120px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.share-sheet-actions .btn { flex: 1; }
+
+.share-sheet-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.share-sheet-actions-grid .btn-ghost {
+  font-size: 0.82rem;
+  padding: 10px 8px;
+}
+
+.share-sheet-actions-grid .btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
 
 .file-btn { display: block; text-align: center; cursor: pointer; margin-bottom: 10px; }
 

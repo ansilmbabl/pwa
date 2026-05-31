@@ -105,28 +105,4 @@ export async function addRecurringRule(data) {
     active: true,
   });
   toast("Recurring rule added", "success");
-  if (data.isSubscription && Notification.permission === "granted") {
-    scheduleBillReminder(data);
-  }
-}
-
-export function requestNotificationPermission() {
-  if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission();
-  }
-}
-
-function scheduleBillReminder(rule) {
-  const days = daysUntil(rule.nextDate);
-  if (days > 0 && days <= 7 && Notification.permission === "granted") {
-    new Notification("Ledger Core", {
-      body: `${rule.merchant || "Bill"} due in ${days} day(s): ${formatCurrency(rule.amount)}`,
-      icon: "./icons/icon.svg",
-    });
-  }
-}
-
-export async function checkBillReminders() {
-  const rules = await getAll(STORES.RECUR);
-  rules.filter((r) => r.active).forEach(scheduleBillReminder);
 }

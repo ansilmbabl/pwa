@@ -88,6 +88,8 @@ export async function renderBudgetPanel() {
 }
 
 export async function checkBudgetAlerts() {
+  if ("Notification" in window && Notification.permission === "granted") return;
+
   const [txs, cats, budget] = await Promise.all([
     getAll(STORES.TX),
     getCategories("expense"),

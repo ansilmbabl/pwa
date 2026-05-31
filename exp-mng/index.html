@@ -111,7 +111,7 @@
         <button type="button" class="section-tab" data-pane="calendar" role="tab">Upcoming</button>
       </nav>
       <div class="tab-pane active" data-pane="add">
-        <button type="button" id="enableNotifBtn" class="btn-sm btn-secondary">Enable bill reminders</button>
+        <button type="button" id="enableNotifBtn" class="btn-sm btn-secondary">Notification settings</button>
         <div class="grid-2" style="margin:12px 0">
           <div class="stat-box"><span class="muted">Subscriptions / mo</span><div id="subMonthlyTotal">₹0</div></div>
           <div class="stat-box"><span class="muted">Subscriptions / yr</span><div id="subYearlyTotal">₹0</div></div>
@@ -220,7 +220,7 @@
         </div>
         <p class="net-line">Net: <strong id="reportNet">₹0</strong></p>
         <div class="report-actions compact">
-          <button type="button" id="reportShareBtn" class="btn btn-secondary">Share</button>
+          <button type="button" id="reportShareBtn" class="btn btn-secondary">Share report</button>
           <button type="button" id="reportExportCsvBtn" class="btn btn-secondary">CSV</button>
           <button type="button" id="reportExportJsonBtn" class="btn btn-secondary">JSON</button>
           <button type="button" id="reportExportPdfBtn" class="btn btn-secondary">PDF</button>
@@ -633,6 +633,23 @@
           <label class="field-block">Currency
             <select id="currencySelect"></select>
           </label>
+        </div>
+        <div class="form-card">
+          <h4>Notifications</h4>
+          <p id="notifPermStatus" class="muted"></p>
+          <div class="row-2">
+            <button type="button" id="notifEnableBtn" class="btn btn-secondary">Enable notifications</button>
+            <button type="button" id="notifTestBtn" class="btn btn-ghost btn-sm">Test</button>
+          </div>
+          <label class="field-block notif-toggle"><input type="checkbox" id="notifDailyEnabled" checked> Daily expense reminder</label>
+          <label class="field-block">Reminder time <input type="time" id="notifDailyTime" value="20:00"></label>
+          <p class="muted hint">Nudges you after this time if nothing was logged today.</p>
+          <label class="field-block notif-toggle"><input type="checkbox" id="notifBudgetEnabled" checked> Monthly budget alerts</label>
+          <label class="field-block">Warn at <input type="number" id="notifBudgetWarnPct" min="50" max="99" value="80" class="input-compact"> % of budget</label>
+          <label class="field-block notif-toggle"><input type="checkbox" id="notifCatBudgetEnabled" checked> Category budget alerts</label>
+          <label class="field-block notif-toggle"><input type="checkbox" id="notifBillsEnabled" checked> Bill due reminders</label>
+          <label class="field-block notif-toggle"><input type="checkbox" id="notifBackupEnabled"> Backup reminders (30+ days)</label>
+          <p class="muted hint">Reminders fire when the app is open or in the background. Install to home screen for best results on mobile.</p>
         </div>
         <div class="form-card">
           <h4>PIN lock</h4>

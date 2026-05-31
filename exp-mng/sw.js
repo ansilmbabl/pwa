@@ -1,4 +1,4 @@
-const CACHE_NAME = "ledger-v17-icon-square";
+const CACHE_NAME = "ledger-v21-share-image";
 const ASSETS = [
   "./",
   "./index.html",
@@ -16,6 +16,7 @@ const ASSETS = [
   "./js/update.js",
   "./js/files.js",
   "./js/share.js",
+  "./js/share-image.js",
   "./js/import.js",
   "./js/wallets.js",
   "./js/rules.js",
@@ -25,6 +26,8 @@ const ASSETS = [
   "./js/tax-india.js",
   "./js/tax-ui.js",
   "./js/advice.js",
+  "./js/notifications.js",
+  "./js/export-brand.js",
   "./js/transactions.js",
   "./js/budget.js",
   "./js/bills.js",
@@ -51,6 +54,27 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data?.type === "SHOW_NOTIFICATION") {
+    const { title, body, tag, icon } = event.data;
+    event.waitUntil(
+      self.registration.showNotification(title, {
+        body,
+        icon: icon || "./icons/icon-192.png",
+        badge: "./icons/icon-192.png",
+        tag: tag || "ledger-core",
+      }),
+    );
+  }
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      if (list.length) return list[0].focus();
+      return clients.openWindow("./index.html");
+    }),
+  );
 });
 
 self.addEventListener("fetch", (event) => {

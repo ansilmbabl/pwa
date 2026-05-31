@@ -1,6 +1,9 @@
 import { STORES, getAll, getCategories } from "./db.js";
 import { parseLocalDate, parseDateTime, todayStr, monthKey, formatMonthLabel, startOfMonth, startOfWeek, inRange, formatDisplayDateTime } from "./dates.js";
-import { formatCurrency, escapeHtml } from "./ui.js";
+import { formatCurrency, escapeHtml, toast } from "./ui.js";
+import {
+  buildBrandedPrintDocument, wrapCsvExport, stampJsonExport, EXPORT_APP_NAME,
+} from "./export-brand.js";
 import { renderSpendingAdvice } from "./advice.js";
 
 let reportMode = "month";
@@ -77,7 +80,24 @@ export async function getReportSnapshot() {
   const catTotals = categoryTotals(expenses).map((c) => ({
     ...c,
     name: cats.find((x) => x.id === c.id)?.name || "?",
+    icon: cats.find((x) => x.id === c.id)?.icon || "",
   }));
+
+  let comparison = null;
+  if (reportMode === "month") {
+    const prevKey = prevMonthKey(reportMonth);
+    const prevExp = txs
+      .filter((t) => t.type === "expense" && monthKey(t.date) === prevKey)
+      .reduce((s, t) => s + t.amount, 0);
+    if (prevExp > 0 || totalExp > 0) {
+      comparison = {
+        previousLabel: formatMonthLabel(prevKey),
+        previousExpense: prevExp,
+        expenseDiff: totalExp - prevExp,
+      };
+    }
+  }
+
   return {
     periodLabel: getPeriodLabel(),
     income: totalInc,
@@ -85,6 +105,8 @@ export async function getReportSnapshot() {
     net: totalInc - totalExp,
     categories: catTotals,
     transactions: periodTxs.sort((a, b) => parseDateTime(b.date, b.time) - parseDateTime(a.date, a.time)),
+    comparison,
+    txCount: periodTxs.length,
     periodTxs,
     expenses,
     incomeTxs: income,
@@ -275,23 +297,27 @@ export function downloadFile(content, filename, type) {
   URL.revokeObjectURL(url);
 }
 
-export function printPDFReport(title, html) {
+export function printPDFReport(title, html, options = {}) {
+  const doc = buildBrandedPrintDocument(title, html, options);
   const win = window.open("", "_blank");
-  win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
-    <style>body{font-family:sans-serif;padding:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:8px}</style>
-    </head><body>${html}</body></html>`);
+  if (!win) {
+    toast("Allow pop-ups to export PDF", "error");
+    return;
+  }
+  win.document.write(doc);
   win.document.close();
-  win.print();
+  win.onload = () => win.print();
 }
 
 export async function buildPDFHtml() {
   const snap = await getReportSnapshot();
   const rows = snap.transactions.map((t) =>
-    `<tr><td>${formatDisplayDateTime(t.date, t.time)}</td><td>${t.type}</td><td>${t.categoryName}</td><td>${t.merchant}</td><td>₹${t.amount.toFixed(2)}</td><td>${t.notes || ""}</td></tr>`
+    `<tr><td>${escapeHtml(formatDisplayDateTime(t.date, t.time))}</td><td>${escapeHtml(t.type)}</td><td>${escapeHtml(t.categoryName)}</td><td>${escapeHtml(t.merchant || "")}</td><td>₹${Number(t.amount).toFixed(2)}</td><td>${escapeHtml(t.notes || "")}</td></tr>`,
   ).join("");
-  return `<h1>Ledger Core Report</h1><p>Period: ${snap.periodLabel}</p>
-    <p>Income: ₹${snap.income.toFixed(2)} | Expenses: ₹${snap.expense.toFixed(2)} | Net: ₹${snap.net.toFixed(2)}</p>
-    <table><tr><th>Date & time</th><th>Type</th><th>Category</th><th>Merchant</th><th>Amount</th><th>Notes</th></tr>${rows}</table>`;
+  return `<h1>${EXPORT_APP_NAME} Report</h1>
+    <p><strong>Period:</strong> ${escapeHtml(snap.periodLabel)}</p>
+    <p><strong>Income:</strong> ₹${snap.income.toFixed(2)} &nbsp;|&nbsp; <strong>Expenses:</strong> ₹${snap.expense.toFixed(2)} &nbsp;|&nbsp; <strong>Net:</strong> ₹${snap.net.toFixed(2)}</p>
+    <table><thead><tr><th>Date &amp; time</th><th>Type</th><th>Category</th><th>Merchant</th><th>Amount</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 export function populateMonthPicker(selectEl, txs) {
@@ -307,19 +333,20 @@ export async function exportFilteredCSV() {
   const txs = await getFilteredTransactions();
   if (!txs.length) throw new Error("No transactions in selected period");
   const label = getPeriodLabel().replace(/\s+/g, "-");
-  downloadFile(exportCSV(txs), `ledger-report-${label}.csv`, "text/csv");
+  const csv = wrapCsvExport(exportCSV(txs), { period: getPeriodLabel(), scope: "filtered-report" });
+  downloadFile(csv, `ledger-report-${label}.csv`, "text/csv");
   return txs.length;
 }
 
 export async function exportFilteredJSON() {
   const snap = await getReportSnapshot();
-  const data = {
+  const data = stampJsonExport({
     version: 4,
     exportedAt: new Date().toISOString(),
     reportPeriod: snap.periodLabel,
     summary: { income: snap.income, expense: snap.expense, net: snap.net },
     transactions: snap.transactions,
-  };
+  }, { exportType: "report", period: snap.periodLabel });
   const label = getPeriodLabel().replace(/\s+/g, "-");
   downloadFile(JSON.stringify(data, null, 2), `ledger-report-${label}.json`, "application/json");
   return snap.transactions.length;
