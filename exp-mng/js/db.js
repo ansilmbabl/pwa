@@ -1,5 +1,5 @@
 const DB_NAME = "LedgerCoreDB";
-const DB_VERSION = 2;
+const DB_VERSION = 4;
 
 export const STORES = {
   TX: "transactions",
@@ -10,6 +10,9 @@ export const STORES = {
   FUNDS: "sinking_funds",
   EVENTS: "expense_events",
   SPLITS: "split_groups",
+  WALLETS: "wallets",
+  AUTO_RULES: "auto_rules",
+  MILEAGE: "mileage",
   SETTINGS: "settings",
 };
 
@@ -28,6 +31,11 @@ const DEFAULT_INCOME_CATS = [
   { name: "Freelance", color: "#3b82f6", icon: "💻" },
   { name: "Gift", color: "#f59e0b", icon: "🎁" },
   { name: "Other", color: "#64748b", icon: "💰" },
+];
+
+const DEFAULT_WALLETS = [
+  { name: "Cash", type: "cash", icon: "💵", color: "#10b981", isDefault: true },
+  { name: "Bank", type: "bank", icon: "🏦", color: "#3b82f6", isDefault: false },
 ];
 
 let dbPromise;
@@ -64,6 +72,15 @@ function openDB() {
         if (!db.objectStoreNames.contains(STORES.SPLITS)) {
           db.createObjectStore(STORES.SPLITS, { keyPath: "id", autoIncrement: true });
         }
+        if (!db.objectStoreNames.contains(STORES.WALLETS)) {
+          db.createObjectStore(STORES.WALLETS, { keyPath: "id", autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains(STORES.AUTO_RULES)) {
+          db.createObjectStore(STORES.AUTO_RULES, { keyPath: "id", autoIncrement: true });
+        }
+        if (!db.objectStoreNames.contains(STORES.MILEAGE)) {
+          db.createObjectStore(STORES.MILEAGE, { keyPath: "id", autoIncrement: true });
+        }
         if (!db.objectStoreNames.contains(STORES.SETTINGS)) {
           db.createObjectStore(STORES.SETTINGS, { keyPath: "key" });
         }
@@ -83,16 +100,37 @@ export async function initDB() {
   await openDB();
   await ensureDefaults();
   await migrateLegacyTransactions();
+  await migrateTimeField();
+  await migrateCategoryFields();
+}
+
+async function migrateCategoryFields() {
+  const cats = await getAll(STORES.CAT);
+  for (const cat of cats) {
+    let changed = false;
+    const patch = { ...cat };
+    if (cat.parentId === undefined) { patch.parentId = null; changed = true; }
+    if (cat.isTaxDeductible === undefined) { patch.isTaxDeductible = false; changed = true; }
+    if (changed) await put(STORES.CAT, patch);
+  }
 }
 
 async function ensureDefaults() {
   const cats = await getAll(STORES.CAT);
-  if (cats.length > 0) return;
-  for (const c of DEFAULT_EXPENSE_CATS) {
-    await add(STORES.CAT, { ...c, type: "expense", budgetLimit: 0, isFavorite: false, rollover: 0 });
+  if (cats.length === 0) {
+    for (const c of DEFAULT_EXPENSE_CATS) {
+      await add(STORES.CAT, { ...c, type: "expense", budgetLimit: 0, isFavorite: false, rollover: 0, parentId: null, isTaxDeductible: false });
+    }
+    for (const c of DEFAULT_INCOME_CATS) {
+      await add(STORES.CAT, { ...c, type: "income", budgetLimit: 0, isFavorite: false, rollover: 0, parentId: null, isTaxDeductible: false });
+    }
   }
-  for (const c of DEFAULT_INCOME_CATS) {
-    await add(STORES.CAT, { ...c, type: "income", budgetLimit: 0, isFavorite: false, rollover: 0 });
+
+  const wallets = await getAll(STORES.WALLETS);
+  if (wallets.length === 0) {
+    for (const w of DEFAULT_WALLETS) {
+      await add(STORES.WALLETS, { ...w, balance: 0 });
+    }
   }
 }
 
@@ -122,7 +160,17 @@ async function migrateLegacyTransactions() {
       eventId: tx.eventId || null,
       recurringId: tx.recurringId || null,
       splits: tx.splits || [],
+      time: tx.time || "12:00",
+      walletId: tx.walletId || null,
     });
+  }
+}
+
+async function migrateTimeField() {
+  const txs = await getAll(STORES.TX);
+  for (const tx of txs) {
+    if (tx.time) continue;
+    await put(STORES.TX, { ...tx, time: "12:00" });
   }
 }
 
@@ -191,9 +239,23 @@ export async function getCategories(type) {
   const all = await getAll(STORES.CAT);
   const filtered = type ? all.filter((c) => c.type === type) : all;
   return filtered.sort((a, b) => {
+    const pa = a.parentId || 0;
+    const pb = b.parentId || 0;
+    if (pa !== pb) return pa - pb;
     if (a.isFavorite !== b.isFavorite) return (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0);
     return a.name.localeCompare(b.name);
   });
+}
+
+export function formatCategoryLabel(cat, allCats) {
+  if (!cat.parentId) return cat.name;
+  const parent = allCats.find((c) => c.id === cat.parentId);
+  return parent ? `${parent.name} › ${cat.name}` : cat.name;
+}
+
+export async function getDefaultWallet() {
+  const wallets = await getAll(STORES.WALLETS);
+  return wallets.find((w) => w.isDefault) || wallets[0] || null;
 }
 
 export async function clearAllData() {

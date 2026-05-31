@@ -62,8 +62,14 @@ export function showModal(title, bodyHtml, actions = []) {
   return overlay;
 }
 
+let currencySymbol = "₹";
+
+export function setCurrencySymbol(sym) {
+  currencySymbol = sym || "₹";
+}
+
 export function formatCurrency(n) {
-  return `₹${Number(n || 0).toFixed(2)}`;
+  return `${currencySymbol}${Number(n || 0).toFixed(2)}`;
 }
 
 export function setLoading(on) {

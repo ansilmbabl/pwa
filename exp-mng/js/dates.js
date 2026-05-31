@@ -4,9 +4,31 @@ export function parseLocalDate(dateStr) {
   return new Date(y, m - 1, d);
 }
 
+export function parseDateTime(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [hh = 0, mm = 0] = (timeStr || "00:00").split(":").map(Number);
+  return new Date(y, m - 1, d, hh, mm);
+}
+
 export function todayStr() {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+}
+
+export function nowTimeStr() {
+  const n = new Date();
+  return `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+}
+
+export function txSortKey(tx) {
+  return `${tx.date}T${tx.time || "00:00"}`;
+}
+
+export function formatDisplayDateTime(date, time) {
+  if (!date) return "";
+  const d = parseLocalDate(date);
+  const datePart = d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return time ? `${datePart}, ${time}` : datePart;
 }
 
 export function monthKey(dateStr) {
@@ -49,4 +71,9 @@ export function daysUntil(dateStr) {
   const today = parseLocalDate(todayStr());
   const target = parseLocalDate(dateStr);
   return Math.round((target - today) / 86400000);
+}
+
+export function setDefaultDateTimeFields(dateEl, timeEl) {
+  if (dateEl) dateEl.value = todayStr();
+  if (timeEl) timeEl.value = nowTimeStr();
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = "ledger-v4-popup";
+const CACHE_NAME = "ledger-v7-tabs-ux";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,6 +9,15 @@ const ASSETS = [
   "./js/dates.js",
   "./js/db.js",
   "./js/ui.js",
+  "./js/tabs.js",
+  "./js/files.js",
+  "./js/share.js",
+  "./js/import.js",
+  "./js/wallets.js",
+  "./js/rules.js",
+  "./js/lock.js",
+  "./js/theme.js",
+  "./js/mileage.js",
   "./js/transactions.js",
   "./js/budget.js",
   "./js/bills.js",

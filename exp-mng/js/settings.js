@@ -1,10 +1,13 @@
 import { exportAllData, importAllData, clearAllData, getSetting, setSetting, getAll, STORES } from "./db.js";
 import { toast } from "./ui.js";
 import { exportCSV, downloadFile } from "./reports.js";
+import { saveJsonBackup, importJsonFromBackupFolder, pickBackupFolder, getBackupFolderName, supportsFileFolder, BACKUP_JSON } from "./files.js";
 
-export async function exportJSON() {
+export async function exportJSON(saveToFolder = true) {
   const data = await exportAllData();
-  downloadFile(JSON.stringify(data, null, 2), `ledger-backup-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
+  const json = JSON.stringify(data, null, 2);
+  downloadFile(json, `ledger-backup-${new Date().toISOString().slice(0, 10)}.json`, "application/json");
+  if (saveToFolder) await saveJsonBackup(json);
   await setSetting("lastBackupDate", new Date().toISOString());
   toast(`Exported backup (${data.transactions.length} transactions)`, "success");
 }
@@ -12,7 +15,8 @@ export async function exportJSON() {
 export async function exportCSVFile() {
   const txs = await getAll(STORES.TX);
   if (!txs.length) return toast("Nothing to export", "error");
-  downloadFile(exportCSV(txs), `ledger-sheet-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
+  const csv = exportCSV(txs);
+  downloadFile(csv, `ledger-sheet-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv");
   toast(`Exported ${txs.length} transactions`, "success");
 }
 
@@ -23,6 +27,18 @@ export async function importJSONFile(file, merge = true) {
   await importAllData(data, merge);
   toast(`Imported ${count} transactions`, "success");
   window.dispatchEvent(new Event("refresh-app"));
+}
+
+export async function importFromBackupFolder(merge = false) {
+  try {
+    const data = await importJsonFromBackupFolder();
+    const count = data.transactions?.length || 0;
+    await importAllData(data, merge);
+    toast(`Restored ${count} transactions from ${BACKUP_JSON}`, "success");
+    window.dispatchEvent(new Event("refresh-app"));
+  } catch (e) {
+    toast(e.message, "error");
+  }
 }
 
 export async function exportEncryptedBackup(password) {
@@ -78,9 +94,24 @@ export async function handleClearAll() {
 export async function checkBackupReminder() {
   const last = await getSetting("lastBackupDate");
   if (!last) {
-    toast("Tip: Export a backup to keep your data safe", "info");
+    toast("Tip: Set a backup folder in Settings to survive app updates", "info");
     return;
   }
   const days = (Date.now() - new Date(last).getTime()) / 86400000;
   if (days > 30) toast("It's been 30+ days since your last backup", "info");
 }
+
+export async function renderBackupFolderStatus() {
+  const el = document.getElementById("backupFolderStatus");
+  if (!el) return;
+  const name = await getBackupFolderName();
+  if (name) {
+    el.innerHTML = `<span class="muted">Backup folder:</span> <strong>${name}</strong> · writes <code>${BACKUP_JSON}</code>`;
+  } else if (supportsFileFolder()) {
+    el.innerHTML = `<span class="muted">No backup folder set. Choose one to auto-save exports and restore after updates.</span>`;
+  } else {
+    el.innerHTML = `<span class="muted">Your browser doesn't support folder backup. Use Download JSON instead.</span>`;
+  }
+}
+
+export { pickBackupFolder, getBackupFolderName, supportsFileFolder };

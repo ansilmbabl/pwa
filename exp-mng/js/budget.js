@@ -100,20 +100,42 @@ export async function checkBudgetAlerts() {
   });
 }
 
+export async function addCustomCategory(name, type, color, icon, parentId = null, isTaxDeductible = false) {
+  await add(STORES.CAT, {
+    name, type, color: color || "#64748b", icon: icon || "📦",
+    budgetLimit: 0, isFavorite: false, rollover: 0,
+    parentId: parentId ? Number(parentId) : null,
+    isTaxDeductible: !!isTaxDeductible,
+  });
+}
+
 export async function renderCustomCategories(container) {
   const cats = await getAll(STORES.CAT);
-  container.innerHTML = cats.map((c) => `
+  container.innerHTML = cats.map((c) => {
+    const parent = c.parentId ? cats.find((p) => p.id === c.parentId) : null;
+    const tax = c.isTaxDeductible ? " · tax" : "";
+    return `
     <div class="settings-row">
-      <span>${c.icon || "📦"} ${escapeHtml(c.name)} <small>(${c.type})</small></span>
+      <span>${c.icon || "📦"} ${escapeHtml(c.name)}${parent ? ` <small>(under ${escapeHtml(parent.name)})</small>` : ""} <small>(${c.type}${tax})</small></span>
+      <label class="tax-check" title="Tax deductible"><input type="checkbox" data-id="${c.id}" class="cat-tax-input" ${c.isTaxDeductible ? "checked" : ""}> Tax</label>
       <input type="color" value="${c.color}" data-id="${c.id}" class="cat-color-input">
       <button type="button" class="btn-sm btn-danger del-cat" data-id="${c.id}">✕</button>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 
   container.querySelectorAll(".cat-color-input").forEach((inp) => {
     inp.onchange = async () => {
       const cat = cats.find((c) => c.id === Number(inp.dataset.id));
       cat.color = inp.value;
       await put(STORES.CAT, cat);
+    };
+  });
+  container.querySelectorAll(".cat-tax-input").forEach((inp) => {
+    inp.onchange = async () => {
+      const cat = cats.find((c) => c.id === Number(inp.dataset.id));
+      cat.isTaxDeductible = inp.checked;
+      await put(STORES.CAT, cat);
+      toast("Category updated");
     };
   });
   container.querySelectorAll(".del-cat").forEach((btn) => {
@@ -123,13 +145,14 @@ export async function renderCustomCategories(container) {
       toast("Category removed");
     };
   });
-}
 
-export async function addCustomCategory(name, type, color, icon) {
-  await add(STORES.CAT, {
-    name, type, color: color || "#64748b", icon: icon || "📦",
-    budgetLimit: 0, isFavorite: false, rollover: 0,
-  });
+  const parentSel = document.getElementById("newCatParent");
+  if (parentSel) {
+    parentSel.innerHTML = `<option value="">No parent (top-level)</option>` +
+      cats.filter((c) => c.type === "expense" && !c.parentId).map((c) =>
+        `<option value="${c.id}">${escapeHtml(c.name)}</option>`
+      ).join("");
+  }
 }
 
 export async function renderTagsManager(container) {

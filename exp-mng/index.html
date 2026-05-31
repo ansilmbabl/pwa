@@ -21,6 +21,7 @@
       </div>
       <div class="header-actions">
         <button type="button" id="refreshBtn" class="icon-btn" title="Refresh">↻</button>
+        <button type="button" id="settingsBtn" class="icon-btn" title="Settings">⚙</button>
         <button type="button" id="pwaBtn" class="btn btn-sm btn-secondary" style="display:none;">Install</button>
       </div>
     </header>
@@ -40,6 +41,9 @@
       </div>
       <p id="emptyDash" class="empty-msg hidden">Tap + to add your first transaction</p>
 
+      <p class="section-label">Wallets</p>
+      <div class="card" id="dashWallets"></div>
+
       <p class="section-label">Recent</p>
       <div class="card" id="recentCard">
         <div id="recentActivity"></div>
@@ -53,164 +57,318 @@
         <h3>History</h3>
         <p>All your transactions</p>
       </div>
-      <input type="search" id="historySearch" placeholder="Search notes, merchant, amount...">
-      <div class="row-2">
-        <select id="historyTypeFilter"><option value="all">All</option><option value="expense">Expenses</option><option value="income">Income</option></select>
-        <select id="historySort">
-          <option value="date-desc">Newest first</option><option value="date-asc">Oldest first</option>
-          <option value="amount-desc">Highest amount</option><option value="amount-asc">Lowest amount</option>
-        </select>
+      <div class="filter-card sticky-filters">
+        <input type="search" id="historySearch" placeholder="Search notes, merchant, amount...">
+        <div class="row-2">
+          <select id="historyTypeFilter"><option value="all">All</option><option value="expense">Expenses</option><option value="income">Income</option></select>
+          <select id="historySort">
+            <option value="date-desc">Newest first</option><option value="date-asc">Oldest first</option>
+            <option value="amount-desc">Highest amount</option><option value="amount-asc">Lowest amount</option>
+          </select>
+        </div>
+        <select id="historyCatFilter"><option value="">All categories</option></select>
       </div>
-      <select id="historyCatFilter"><option value="">All categories</option></select>
       <div id="historyList"></div>
     </div>
 
     <!-- BUDGET -->
-    <div id="panel-budget" class="view-panel">
-      <h3>Budget</h3>
-      <div class="form-card">
-        <label>Monthly budget target (₹)</label>
-        <div class="row-2">
-          <input type="number" id="monthlyBudgetInput" placeholder="e.g. 20000" step="100">
-          <button type="button" id="saveBudgetBtn" class="btn">Save</button>
+    <div id="panel-budget" class="view-panel" data-section-tabs>
+      <div class="page-header"><h3>Budget</h3><p>Monthly targets & limits</p></div>
+      <nav class="section-tabs sticky-tabs" role="tablist">
+        <button type="button" class="section-tab active" data-pane="overview" role="tab" aria-selected="true">Overview</button>
+        <button type="button" class="section-tab" data-pane="categories" role="tab">Categories</button>
+      </nav>
+      <div class="tab-pane active" data-pane="overview">
+        <div class="form-card">
+          <label>Monthly budget target</label>
+          <div class="row-2">
+            <input type="number" id="monthlyBudgetInput" placeholder="e.g. 20000" step="100">
+            <button type="button" id="saveBudgetBtn" class="btn">Save</button>
+          </div>
+          <div class="grid-2" style="margin-top:12px">
+            <div class="stat-box"><span class="muted">Spent</span><div id="budgetSpent">₹0</div></div>
+            <div class="stat-box"><span class="muted">Remaining</span><div id="budgetRemaining">₹0</div></div>
+          </div>
+          <div class="progress-track"><div id="budgetProgressBar" class="progress-fill" style="width:0"></div></div>
+          <p class="muted">Month net: <span id="monthNetDisplay">₹0</span></p>
         </div>
-        <div class="grid-2" style="margin-top:12px">
-          <div class="stat-box"><span class="muted">Spent</span><div id="budgetSpent">₹0</div></div>
-          <div class="stat-box"><span class="muted">Remaining</span><div id="budgetRemaining">₹0</div></div>
-        </div>
-        <div class="progress-track"><div id="budgetProgressBar" class="progress-fill" style="width:0"></div></div>
-        <p class="muted">Month net: <span id="monthNetDisplay">₹0</span></p>
       </div>
-      <h4>Category limits</h4>
-      <div id="categoryBudgetList"></div>
+      <div class="tab-pane" data-pane="categories">
+        <div id="categoryBudgetList"></div>
+      </div>
     </div>
 
     <!-- BILLS -->
-    <div id="panel-bills" class="view-panel">
-      <h3>Bills & Recurring</h3>
-      <button type="button" id="enableNotifBtn" class="btn-sm btn-secondary">Enable bill reminders</button>
-      <div class="grid-2" style="margin:12px 0">
-        <div class="stat-box"><span class="muted">Subscriptions / mo</span><div id="subMonthlyTotal">₹0</div></div>
-        <div class="stat-box"><span class="muted">Subscriptions / yr</span><div id="subYearlyTotal">₹0</div></div>
-      </div>
-      <form id="recurForm" class="form-card">
-        <h4>Add recurring</h4>
-        <div class="row-2"><input type="number" id="recurAmt" placeholder="Amount" required step="0.01"><select id="recurCat"></select></div>
-        <input type="text" id="recurMerchant" placeholder="Merchant">
-        <div class="row-2">
-          <select id="recurFreq"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="yearly">Yearly</option></select>
-          <input type="date" id="recurNext" required>
+    <div id="panel-bills" class="view-panel" data-section-tabs>
+      <div class="page-header"><h3>Bills</h3><p>Recurring & subscriptions</p></div>
+      <nav class="section-tabs sticky-tabs" role="tablist">
+        <button type="button" class="section-tab active" data-pane="add" role="tab" aria-selected="true">Add</button>
+        <button type="button" class="section-tab" data-pane="rules" role="tab">Rules</button>
+        <button type="button" class="section-tab" data-pane="calendar" role="tab">Upcoming</button>
+      </nav>
+      <div class="tab-pane active" data-pane="add">
+        <button type="button" id="enableNotifBtn" class="btn-sm btn-secondary">Enable bill reminders</button>
+        <div class="grid-2" style="margin:12px 0">
+          <div class="stat-box"><span class="muted">Subscriptions / mo</span><div id="subMonthlyTotal">₹0</div></div>
+          <div class="stat-box"><span class="muted">Subscriptions / yr</span><div id="subYearlyTotal">₹0</div></div>
         </div>
-        <label><input type="checkbox" id="recurSub"> Track as subscription</label>
-        <input type="text" id="recurNotes" placeholder="Notes">
-        <button type="submit" class="btn">Add rule</button>
-      </form>
-      <h4>Recurring rules</h4><div id="recurringList"></div>
-      <h4>Subscriptions</h4><div id="subscriptionList"></div>
-      <h4>Upcoming (30 days)</h4><div id="billsCalendar"></div>
+        <form id="recurForm" class="form-card">
+          <h4>Add recurring</h4>
+          <div class="row-2"><input type="number" id="recurAmt" placeholder="Amount" required step="0.01"><select id="recurCat"></select></div>
+          <input type="text" id="recurMerchant" placeholder="Merchant">
+          <div class="row-2">
+            <select id="recurFreq"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="yearly">Yearly</option></select>
+            <input type="date" id="recurNext" required>
+          </div>
+          <label><input type="checkbox" id="recurSub"> Track as subscription</label>
+          <input type="text" id="recurNotes" placeholder="Notes">
+          <button type="submit" class="btn">Add rule</button>
+        </form>
+      </div>
+      <div class="tab-pane" data-pane="rules">
+        <h4>Recurring rules</h4><div id="recurringList"></div>
+        <h4>Subscriptions</h4><div id="subscriptionList"></div>
+      </div>
+      <div class="tab-pane" data-pane="calendar">
+        <h4>Upcoming (30 days)</h4><div id="billsCalendar"></div>
+      </div>
     </div>
 
     <!-- GOALS -->
-    <div id="panel-goals" class="view-panel">
-      <h3>Goals & Funds</h3>
-      <form id="goalForm" class="form-card">
-        <h4>Savings goal</h4>
-        <input type="text" id="goalName" placeholder="Goal name" required>
-        <input type="number" id="goalTarget" placeholder="Target ₹" required step="100">
-        <input type="date" id="goalDeadline">
-        <button type="submit" class="btn">Create goal</button>
-      </form>
-      <div id="savingsGoalsList"></div>
-      <form id="fundForm" class="form-card">
-        <h4>Sinking fund</h4>
-        <input type="text" id="fundName" placeholder="Fund name" required>
-        <input type="number" id="fundTarget" placeholder="Target ₹" required step="100">
-        <button type="submit" class="btn">Create fund</button>
-      </form>
-      <div id="sinkingFundsList"></div>
+    <div id="panel-goals" class="view-panel" data-section-tabs>
+      <div class="page-header"><h3>Goals</h3><p>Savings & sinking funds</p></div>
+      <nav class="section-tabs sticky-tabs" role="tablist">
+        <button type="button" class="section-tab active" data-pane="savings" role="tab" aria-selected="true">Savings</button>
+        <button type="button" class="section-tab" data-pane="funds" role="tab">Funds</button>
+      </nav>
+      <div class="tab-pane active" data-pane="savings">
+        <form id="goalForm" class="form-card">
+          <input type="text" id="goalName" placeholder="Goal name" required>
+          <input type="number" id="goalTarget" placeholder="Target amount" required step="100">
+          <input type="date" id="goalDeadline">
+          <button type="submit" class="btn">Create goal</button>
+        </form>
+        <div id="savingsGoalsList"></div>
+      </div>
+      <div class="tab-pane" data-pane="funds">
+        <form id="fundForm" class="form-card">
+          <input type="text" id="fundName" placeholder="Fund name" required>
+          <input type="number" id="fundTarget" placeholder="Target amount" required step="100">
+          <button type="submit" class="btn">Create fund</button>
+        </form>
+        <div id="sinkingFundsList"></div>
+      </div>
     </div>
 
     <!-- EVENTS -->
-    <div id="panel-events" class="view-panel">
-      <h3>Events & Trips</h3>
-      <form id="eventForm" class="form-card">
-        <input type="text" id="eventName" placeholder="Event name" required>
-        <div class="row-2"><input type="date" id="eventStart" required><input type="date" id="eventEnd"></div>
-        <input type="number" id="eventBudget" placeholder="Budget ₹" step="100">
-        <button type="submit" class="btn">Create event</button>
-      </form>
-      <div id="eventsList"></div>
-      <h4>Split bills</h4>
-      <form id="splitForm" class="form-card">
-        <input type="text" id="splitName" placeholder="Group name" required>
-        <input type="text" id="splitMembers" placeholder="Members (comma separated)" required>
-        <button type="submit" class="btn">Create group</button>
-      </form>
-      <div id="splitGroupsList"></div>
+    <div id="panel-events" class="view-panel" data-section-tabs>
+      <div class="page-header"><h3>Events</h3><p>Trips & split bills</p></div>
+      <nav class="section-tabs sticky-tabs" role="tablist">
+        <button type="button" class="section-tab active" data-pane="trips" role="tab" aria-selected="true">Trips</button>
+        <button type="button" class="section-tab" data-pane="splits" role="tab">Split bills</button>
+      </nav>
+      <div class="tab-pane active" data-pane="trips">
+        <form id="eventForm" class="form-card">
+          <input type="text" id="eventName" placeholder="Event name" required>
+          <div class="row-2"><input type="date" id="eventStart" required><input type="date" id="eventEnd"></div>
+          <input type="number" id="eventBudget" placeholder="Budget" step="100">
+          <button type="submit" class="btn">Create event</button>
+        </form>
+        <div id="eventsList"></div>
+      </div>
+      <div class="tab-pane" data-pane="splits">
+        <form id="splitForm" class="form-card">
+          <input type="text" id="splitName" placeholder="Group name" required>
+          <input type="text" id="splitMembers" placeholder="Members (comma separated)" required>
+          <button type="submit" class="btn">Create group</button>
+        </form>
+        <div id="splitGroupsList"></div>
+      </div>
     </div>
 
     <!-- REPORTS -->
-    <div id="panel-reports" class="view-panel">
+    <div id="panel-reports" class="view-panel" data-section-tabs>
       <div class="page-header">
         <h3>Reports</h3>
         <p>Spending insights</p>
       </div>
-      <p id="weeklyRecap" class="recap-card"></p>
-      <div class="row-2">
-        <select id="reportMonth"></select>
-        <span class="muted">or range:</span>
+      <nav class="section-tabs sticky-tabs" role="tablist">
+        <button type="button" class="section-tab active" data-pane="overview" role="tab" aria-selected="true">Overview</button>
+        <button type="button" class="section-tab" data-pane="charts" role="tab">Charts</button>
+        <button type="button" class="section-tab" data-pane="insights" role="tab">Insights</button>
+        <button type="button" class="section-tab" data-pane="tax" role="tab">Tax</button>
+      </nav>
+
+      <div class="tab-pane active" data-pane="overview">
+        <p id="weeklyRecap" class="recap-card"></p>
+        <div class="filter-card">
+          <div class="row-2">
+            <select id="reportMonth"></select>
+            <button type="button" id="clearReportRange" class="btn-sm btn-ghost">Clear range</button>
+          </div>
+          <div class="row-2"><input type="date" id="reportFrom"><input type="date" id="reportTo"></div>
+          <p class="muted">Showing: <strong id="reportPeriodLabel">—</strong></p>
+        </div>
+        <div class="grid-2">
+          <div class="stat-box"><span class="income-label">Income</span><div id="reportIncome">₹0</div></div>
+          <div class="stat-box"><span class="expense-label">Expenses</span><div id="reportExpense">₹0</div></div>
+        </div>
+        <p class="net-line">Net: <strong id="reportNet">₹0</strong></p>
+        <div class="report-actions compact">
+          <button type="button" id="reportShareBtn" class="btn btn-secondary">Share</button>
+          <button type="button" id="reportExportCsvBtn" class="btn btn-secondary">CSV</button>
+          <button type="button" id="reportExportJsonBtn" class="btn btn-secondary">JSON</button>
+          <button type="button" id="reportExportPdfBtn" class="btn btn-secondary">PDF</button>
+        </div>
       </div>
-      <div class="row-2"><input type="date" id="reportFrom"><input type="date" id="reportTo"></div>
-      <div class="grid-2">
-        <div class="stat-box"><span class="income-label">Income</span><div id="reportIncome">₹0</div></div>
-        <div class="stat-box"><span class="expense-label">Expenses</span><div id="reportExpense">₹0</div></div>
+
+      <div class="tab-pane" data-pane="charts">
+        <div class="chart-box">
+          <canvas id="categoryWheel" width="240" height="240"></canvas>
+          <div id="chartLegend" class="chart-legend"></div>
+        </div>
+        <h4>Top categories</h4><div id="topCategories"></div>
+        <h4>Spending trend</h4>
+        <canvas id="trendChart" width="320" height="120"></canvas>
+        <h4>Month vs last month</h4><div id="categoryComparison"></div>
       </div>
-      <p>Net: <strong id="reportNet">₹0</strong></p>
-      <div class="chart-box">
-        <canvas id="categoryWheel" width="240" height="240"></canvas>
-        <div id="chartLegend" class="chart-legend"></div>
+
+      <div class="tab-pane" data-pane="insights">
+        <h4>Top merchants</h4><div id="topMerchants"></div>
+        <h4>Spending heatmap</h4><div id="spendingHeatmap"></div>
+        <h4>Cash flow forecast</h4><div id="cashFlowForecast"></div>
+        <h4>Yearly summary</h4><div id="yearlySummary"></div>
       </div>
-      <h4>Top categories</h4><div id="topCategories"></div>
-      <h4>Spending trend (14 days)</h4>
-      <canvas id="trendChart" width="320" height="120"></canvas>
-      <h4>Yearly summary</h4><div id="yearlySummary"></div>
-      <h4>Month vs last month</h4><div id="categoryComparison"></div>
+
+      <div class="tab-pane" data-pane="tax">
+        <div id="taxReport"></div>
+      </div>
+    </div>
+
+    <!-- WALLETS -->
+    <div id="panel-wallets" class="view-panel" data-section-tabs>
+      <div class="page-header"><h3>Wallets</h3><p>Accounts & transfers</p></div>
+      <nav class="section-tabs sticky-tabs" role="tablist">
+        <button type="button" class="section-tab active" data-pane="balances" role="tab" aria-selected="true">Balances</button>
+        <button type="button" class="section-tab" data-pane="add" role="tab">Add</button>
+        <button type="button" class="section-tab" data-pane="transfer" role="tab">Transfer</button>
+      </nav>
+      <div class="tab-pane active" data-pane="balances"><div id="walletsList"></div></div>
+      <div class="tab-pane" data-pane="add">
+        <form id="walletForm" class="form-card">
+          <input type="text" id="walletName" placeholder="Wallet name" required>
+          <div class="row-2">
+            <select id="walletType"><option value="cash">Cash</option><option value="bank">Bank</option><option value="card">Card</option><option value="other">Other</option></select>
+            <input type="text" id="walletIcon" placeholder="Icon" maxlength="2" value="💳">
+          </div>
+          <button type="submit" class="btn">Add wallet</button>
+        </form>
+      </div>
+      <div class="tab-pane" data-pane="transfer">
+        <form id="transferForm" class="form-card">
+          <div class="row-2"><select id="transferFrom"></select><select id="transferTo"></select></div>
+          <input type="number" id="transferAmt" placeholder="Amount" step="0.01" required>
+          <button type="submit" class="btn">Transfer</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- MILEAGE -->
+    <div id="panel-mileage" class="view-panel">
+      <div class="page-header"><h3>Mileage</h3><p>Track deductible travel</p></div>
+      <p id="mileageTotal" class="recap-card"></p>
+      <form id="mileageForm" class="form-card">
+        <div class="row-2"><input type="number" id="mileageMiles" placeholder="Miles" step="0.1" required><input type="date" id="mileageDate" required></div>
+        <input type="text" id="mileagePurpose" placeholder="Purpose / destination" required>
+        <div class="row-2"><label>Rate ₹/mi <input type="number" id="mileageRate" step="0.5" value="15"></label><button type="submit" class="btn">Log trip</button></div>
+      </form>
+      <div id="mileageList"></div>
     </div>
 
     <!-- SETTINGS -->
-    <div id="panel-settings" class="view-panel">
+    <div id="panel-settings" class="view-panel" data-section-tabs>
       <div class="page-header">
         <h3>Settings</h3>
-        <p>Backup & categories</p>
+        <p>Preferences & data</p>
       </div>
-      <div class="form-card">
-        <h4>Export</h4>
-        <button type="button" id="exportJsonBtn" class="btn">Download JSON backup</button>
-        <button type="button" id="exportCsvBtn" class="btn btn-secondary">Download CSV</button>
-        <button type="button" id="exportPdfBtn" class="btn btn-secondary">Print / PDF report</button>
-        <button type="button" id="exportEncBtn" class="btn btn-secondary">Encrypted backup</button>
-      </div>
-      <div class="form-card">
-        <h4>Import</h4>
-        <label class="btn btn-secondary file-btn">Import JSON<input type="file" id="importJsonInput" accept=".json" hidden></label>
-        <label class="btn btn-secondary file-btn">Import encrypted<input type="file" id="importEncInput" accept=".json" hidden></label>
-      </div>
-      <div class="form-card">
-        <h4>Categories</h4>
-        <div id="categoriesList"></div>
-        <div class="row-2">
-          <input type="text" id="newCatName" placeholder="Name">
-          <select id="newCatType"><option value="expense">Expense</option><option value="income">Income</option></select>
+      <nav class="section-tabs sticky-tabs" role="tablist">
+        <button type="button" class="section-tab active" data-pane="general" role="tab" aria-selected="true">General</button>
+        <button type="button" class="section-tab" data-pane="data" role="tab">Data</button>
+        <button type="button" class="section-tab" data-pane="organize" role="tab">Organize</button>
+      </nav>
+
+      <div class="tab-pane active" data-pane="general">
+        <div class="form-card">
+          <h4>Appearance</h4>
+          <button type="button" id="themeToggleBtn" class="btn btn-secondary">Switch theme</button>
+          <label class="field-block">Currency
+            <select id="currencySelect"></select>
+          </label>
         </div>
-        <div class="row-2"><input type="text" id="newCatIcon" placeholder="Icon emoji" maxlength="2"><input type="color" id="newCatColor" value="#64748b"></div>
-        <button type="button" id="addCatBtn" class="btn">Add category</button>
+        <div class="form-card">
+          <h4>PIN lock</h4>
+          <p id="pinStatus" class="muted"></p>
+          <div class="row-2">
+            <input type="password" id="newPin" placeholder="New PIN (4–6 digits)" inputmode="numeric" maxlength="6">
+            <input type="password" id="confirmPin" placeholder="Confirm PIN" inputmode="numeric" maxlength="6">
+          </div>
+          <div class="row-2">
+            <button type="button" id="setPinBtn" class="btn">Set PIN</button>
+            <button type="button" id="removePinBtn" class="btn btn-secondary">Remove PIN</button>
+          </div>
+        </div>
+        <div class="form-card">
+          <h4>Auto-categorization</h4>
+          <div id="autoRulesList"></div>
+          <div class="row-2"><input type="text" id="rulePattern" placeholder='If merchant contains…'><select id="ruleCat"></select></div>
+          <button type="button" id="addRuleBtn" class="btn">Add rule</button>
+        </div>
       </div>
-      <div class="form-card">
-        <h4>Tags</h4>
-        <div id="tagsList"></div>
-        <div class="row-2"><input type="text" id="newTagName" placeholder="Tag name"><button type="button" id="addTagBtn" class="btn">Add</button></div>
+
+      <div class="tab-pane" data-pane="data">
+        <div class="form-card">
+          <h4>Backup folder</h4>
+          <p id="backupFolderStatus" class="muted"></p>
+          <div class="row-2">
+            <button type="button" id="pickBackupFolderBtn" class="btn">Choose folder</button>
+            <button type="button" id="restoreFromFolderBtn" class="btn btn-secondary">Restore</button>
+          </div>
+          <p class="muted hint">Saves <code>ledger-core-backup.json</code> for restore after updates.</p>
+        </div>
+        <div class="form-card">
+          <h4>Export</h4>
+          <button type="button" id="exportJsonBtn" class="btn">JSON backup</button>
+          <button type="button" id="exportCsvBtn" class="btn btn-secondary">CSV</button>
+          <button type="button" id="exportPdfBtn" class="btn btn-secondary">PDF report</button>
+          <button type="button" id="exportEncBtn" class="btn btn-secondary">Encrypted</button>
+        </div>
+        <div class="form-card">
+          <h4>Import</h4>
+          <label class="btn btn-secondary file-btn">JSON<input type="file" id="importJsonInput" accept=".json" hidden></label>
+          <label class="btn btn-secondary file-btn">CSV<input type="file" id="importCsvInput" accept=".csv,text/csv" hidden></label>
+          <label class="btn btn-secondary file-btn">Encrypted<input type="file" id="importEncInput" accept=".json" hidden></label>
+        </div>
+        <button type="button" id="clearDataBtn" class="btn btn-danger">Clear all data</button>
       </div>
-      <button type="button" id="clearDataBtn" class="btn btn-danger">Clear all data</button>
+
+      <div class="tab-pane" data-pane="organize">
+        <div class="form-card">
+          <h4>Categories</h4>
+          <div id="categoriesList"></div>
+          <div class="row-2">
+            <input type="text" id="newCatName" placeholder="Name">
+            <select id="newCatType"><option value="expense">Expense</option><option value="income">Income</option></select>
+          </div>
+          <div class="row-2"><input type="text" id="newCatIcon" placeholder="Icon" maxlength="2"><input type="color" id="newCatColor" value="#64748b"></div>
+          <select id="newCatParent"><option value="">No parent (top-level)</option></select>
+          <button type="button" id="addCatBtn" class="btn">Add category</button>
+        </div>
+        <div class="form-card">
+          <h4>Tags</h4>
+          <div id="tagsList"></div>
+          <div class="row-2"><input type="text" id="newTagName" placeholder="Tag name"><button type="button" id="addTagBtn" class="btn">Add</button></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -222,47 +380,64 @@
         <button type="button" class="popup-close" id="txPopupClose" aria-label="Close">✕</button>
       </div>
       <div class="popup-body">
-        <form id="txForm">
-          <div class="type-toggle" id="typeToggle">
-            <button type="button" class="type-pill active-expense" data-type="expense">Expense</button>
-            <button type="button" class="type-pill" data-type="income">Income</button>
-          </div>
-          <select id="txType" hidden>
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-          </select>
-          <div class="quick-amts">
-            <button type="button" class="btn-sm quick-amt" data-amt="100">₹100</button>
-            <button type="button" class="btn-sm quick-amt" data-amt="500">₹500</button>
-            <button type="button" class="btn-sm quick-amt" data-amt="1000">₹1k</button>
-            <button type="button" id="dupLastBtn" class="btn-sm btn-ghost">Repeat last</button>
-          </div>
-          <div class="field">
-            <label for="txAmt">Amount</label>
-            <input type="number" id="txAmt" placeholder="0.00" step="0.01" inputmode="decimal" required>
-          </div>
-          <div class="row-2">
-            <div class="field"><label for="txDate">Date</label><input type="date" id="txDate" required></div>
+        <form id="txForm" data-section-tabs>
+          <nav class="section-tabs popup-tabs" role="tablist" data-tx-tabs>
+            <button type="button" class="section-tab active" data-pane="essentials" role="tab">Essentials</button>
+            <button type="button" class="section-tab" data-pane="details" role="tab">Details</button>
+          </nav>
+
+          <div class="tab-pane active" data-pane="essentials">
+            <div class="type-toggle" id="typeToggle">
+              <button type="button" class="type-pill active-expense" data-type="expense">Expense</button>
+              <button type="button" class="type-pill" data-type="income">Income</button>
+            </div>
+            <select id="txType" hidden>
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+            <div class="quick-amts">
+              <button type="button" class="btn-sm quick-amt" data-amt="100">100</button>
+              <button type="button" class="btn-sm quick-amt" data-amt="500">500</button>
+              <button type="button" class="btn-sm quick-amt" data-amt="1000">1k</button>
+              <button type="button" id="dupLastBtn" class="btn-sm btn-ghost">Repeat last</button>
+            </div>
+            <div class="field">
+              <label for="txAmt">Amount</label>
+              <input type="number" id="txAmt" placeholder="0.00" step="0.01" inputmode="decimal" required>
+            </div>
+            <div class="row-2">
+              <div class="field"><label for="txDate">Date</label><input type="date" id="txDate" required></div>
+              <div class="field"><label for="txTime">Time</label><input type="time" id="txTime" required></div>
+            </div>
             <div class="field"><label for="txCat">Category</label><select id="txCat" required></select></div>
           </div>
-          <div class="field"><label for="txMerchant">Merchant</label><input type="text" id="txMerchant" placeholder="Where did you spend?"></div>
-          <div class="row-2">
-            <div class="field"><label for="txPayment">Payment</label>
-              <select id="txPayment">
-                <option value="Cash">Cash</option><option value="UPI">UPI</option>
-                <option value="Card">Card</option><option value="Bank">Bank</option>
-              </select>
+
+          <div class="tab-pane" data-pane="details">
+            <div class="field"><label for="txMerchant">Merchant</label><input type="text" id="txMerchant" placeholder="Where did you spend?"></div>
+            <div class="row-2">
+              <div class="field"><label for="txPayment">Payment</label>
+                <select id="txPayment">
+                  <option value="Cash">Cash</option><option value="UPI">UPI</option>
+                  <option value="Card">Card</option><option value="Bank">Bank</option>
+                </select>
+              </div>
+              <div class="field"><label for="txWallet">Wallet</label><select id="txWallet"></select></div>
             </div>
-            <div class="field"><label for="txEvent">Event</label><select id="txEvent"></select></div>
+            <div class="row-2">
+              <div class="field"><label for="txEvent">Event</label><select id="txEvent"></select></div>
+              <div class="field"><label for="txReceipt">Receipt</label><input type="file" id="txReceipt" accept="image/*" capture="environment"></div>
+            </div>
+            <div id="receiptPreview" class="receipt-preview"></div>
+            <div class="field"><label for="txTags">Tags</label><input type="text" id="txTags" placeholder="vacation, work…"></div>
+            <div class="field"><label for="txNotes">Notes</label><textarea id="txNotes" placeholder="Optional note" rows="2"></textarea></div>
+            <div id="splitSection" style="display:none">
+              <p class="section-label">Split</p>
+              <div id="splitRows"></div>
+              <button type="button" id="addSplitBtn" class="btn-sm btn-ghost">+ Split line</button>
+            </div>
           </div>
-          <div class="field"><label for="txTags">Tags</label><input type="text" id="txTags" placeholder="vacation, work…"></div>
-          <div class="field"><label for="txNotes">Notes</label><textarea id="txNotes" placeholder="Optional note" rows="2"></textarea></div>
-          <div id="splitSection" style="display:none">
-            <p class="section-label">Split</p>
-            <div id="splitRows"></div>
-            <button type="button" id="addSplitBtn" class="btn-sm btn-ghost">+ Split line</button>
-          </div>
-          <div class="row-2" style="margin-top:8px">
+
+          <div class="popup-actions">
             <button type="submit" class="btn">Save</button>
             <button type="button" id="txCancelBtn" class="btn btn-secondary">Cancel</button>
           </div>
@@ -279,16 +454,15 @@
         <button type="button" class="popup-close" id="morePopupClose" aria-label="Close">✕</button>
       </div>
       <div class="popup-body more-grid">
-        <button type="button" class="more-link" data-panel="budget">Budget</button>
-        <button type="button" class="more-link" data-panel="bills">Bills</button>
-        <button type="button" class="more-link" data-panel="goals">Goals</button>
-        <button type="button" class="more-link" data-panel="events">Events</button>
-        <button type="button" class="more-link" data-panel="settings">Settings</button>
+        <button type="button" class="more-link" data-panel="wallets"><span class="more-icon">💳</span>Wallets</button>
+        <button type="button" class="more-link" data-panel="budget"><span class="more-icon">📊</span>Budget</button>
+        <button type="button" class="more-link" data-panel="bills"><span class="more-icon">📅</span>Bills</button>
+        <button type="button" class="more-link" data-panel="goals"><span class="more-icon">🎯</span>Goals</button>
+        <button type="button" class="more-link" data-panel="events"><span class="more-icon">✈️</span>Events</button>
+        <button type="button" class="more-link" data-panel="mileage"><span class="more-icon">🚗</span>Mileage</button>
       </div>
     </div>
   </div>
-
-  <button type="button" id="fabAdd" class="fab" title="Quick add">+</button>
 
   <nav class="navbar">
     <button type="button" class="nav-tab active" data-tab="dash">
@@ -297,6 +471,9 @@
     <button type="button" class="nav-tab" data-tab="history">
       <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>History
     </button>
+    <button type="button" class="nav-tab nav-add" id="navAdd" title="Add transaction">
+      <span class="nav-add-icon">+</span>
+    </button>
     <button type="button" class="nav-tab" data-tab="reports">
       <svg viewBox="0 0 24 24"><path d="M5 19h14v2H5zM19 17H5v-2h14zm0-4H5v-2h14zm0-4H5V7h14z"/></svg>Reports
     </button>
@@ -304,6 +481,17 @@
       <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>More
     </button>
   </nav>
+
+  <!-- PIN lock -->
+  <div class="pin-lock" id="pinLock" aria-hidden="true">
+    <div class="pin-lock-card">
+      <h2>Ledger Core</h2>
+      <p class="muted">Enter PIN to unlock</p>
+      <input type="password" id="pinInput" inputmode="numeric" maxlength="6" placeholder="••••" autocomplete="off">
+      <p id="pinError" class="pin-error hidden">Wrong PIN</p>
+      <button type="button" id="pinUnlockBtn" class="btn">Unlock</button>
+    </div>
+  </div>
 
   <script type="module" src="js/app.js"></script>
 </body>
