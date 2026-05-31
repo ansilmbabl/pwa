@@ -1,23 +1,22 @@
 {
-  "name": "Personal Expense Ledger",
-  "short_name": "Ledger",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "orientation": "portrait",
+  "short_name": "Ledger Core",
+  "name": "Ledger Personal Capital Core",
+  "description": "Minimalist V1 offline-first expense tracking utility.",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2454/2454269.png",
-      "sizes": "512x512",
+      "src": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4b3.png",
       "type": "image/png",
-      "purpose": "any"
+      "sizes": "72x72"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2454/2454269.png",
-      "sizes": "192x192",
+      "src": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/512x512/1f4b3.png",
       "type": "image/png",
-      "purpose": "any"
+      "sizes": "512x512"
     }
-  ]
+  ],
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "display": "standalone",
+  "orientation": "portrait"
 }

@@ -3,183 +3,346 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Local Ledger</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Ledger V1</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
 </head>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js")
+        .then(reg => console.log("Service Worker registered successfully:", reg.scope))
+        .catch(err => console.error("Service Worker registration failed:", err));
+    });
+  }
+
+  // PWA Home Screen Installation Prompt Catching System
+  let deferredPrompt;
+  const pwaBtn = document.getElementById("pwaBtn");
+  
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    pwaBtn.style.display = "block";
+  });
+
+  pwaBtn.addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      pwaBtn.style.display = "none";
+    }
+    deferredPrompt = null;
+  });
+</script>
 <body>
 
-  <div class="app-wrapper">
+  <div class="app-container">
     <header>
-      <h1>Ledger</h1>
-      <button id="pwaBtn" class="btn-pwa">Install App</button>
+      <h1 style="font-size: 1.3rem; margin: 0;">Ledger Core</h1>
+      <button id="pwaBtn" class="btn" style="width:auto; padding: 6px 12px; font-size:0.8rem; display:none;">Install</button>
     </header>
 
-    <div class="balance-card">
-      <span style="color: var(--text-muted);">Net Balance</span>
-      <h2 id="totalBalance">₹0.00</h2>
-      <div class="grid-2">
-        <div class="stat-box">
-          <span style="color: var(--income);">▲ Income</span>
-          <div id="totalIncome" style="font-weight: bold; margin-top:4px;">₹0.00</div>
+    <!-- TAB 1: DASHBOARD & RECORD INTAKE -->
+    <div id="panel-dash" class="view-panel active">
+      <div class="metric-card">
+        <span style="color: var(--text-muted); font-size: 0.9rem;">Remaining Balance</span>
+        <h2 id="totalBalance">₹0.00</h2>
+        <div class="grid-2">
+          <div class="stat-box">
+            <span style="color: var(--income); font-size:0.8rem;">Income (Month)</span>
+            <div id="totalIncome" style="font-weight:bold; margin-top:4px;">₹0.00</div>
+          </div>
+          <div class="stat-box">
+            <span style="color: var(--expense); font-size:0.8rem;">Expenses (Month)</span>
+            <div id="totalExpense" style="font-weight:bold; margin-top:4px;">₹0.00</div>
+          </div>
         </div>
-        <div class="stat-box">
-          <span style="color: var(--expense);">▼ Expenses</span>
-          <div id="totalExpense" style="font-weight: bold; margin-top:4px;">₹0.00</div>
-        </div>
+      </div>
+
+      <div class="form-card">
+        <h3 style="margin-top:0; margin-bottom:12px;">Add Transaction</h3>
+        <form id="txForm">
+          <div style="display: flex; gap: 8px;">
+            <input type="number" id="txAmt" placeholder="Amount (₹)" step="0.01" required style="flex: 2;">
+            <select id="txType" style="flex: 1;">
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+          
+          <input type="date" id="txDate" required>
+          
+          <select id="txCat" required>
+            <option value="Food">Food</option>
+            <option value="Transport">Transport</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Bills">Bills</option>
+            <option value="Health">Health</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Other">Other</option>
+          </select>
+          
+          <textarea id="txNotes" placeholder="Notes / Remarks..." rows="2"></textarea>
+          
+          <button type="submit" class="btn">Save Entry</button>
+        </form>
       </div>
     </div>
 
-    <div class="form-card">
-      <form id="ledgerForm">
-        <input type="text" id="desc" placeholder="Description" required>
-        <input type="number" id="amt" placeholder="Amount (₹)" step="0.01" required>
-        <select id="category">
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-        </select>
-        <button type="submit" class="submit-btn">Save Entry</button>
-      </form>
+    <!-- TAB 2: TRANSACTION TIMELINE HISTORY -->
+    <div id="panel-history" class="view-panel">
+      <h3>Transaction Log History</h3>
+      
+      <div class="time-section">
+        <h4>Today</h4>
+        <div id="group-today"></div>
+      </div>
+      
+      <div class="time-section">
+        <h4>Yesterday</h4>
+        <div id="group-yesterday"></div>
+      </div>
+      
+      <div class="time-section">
+        <h4>This Week</h4>
+        <div id="group-week"></div>
+      </div>
+      
+      <div class="time-section">
+        <h4>This Month</h4>
+        <div id="group-month"></div>
+      </div>
     </div>
 
-    <div class="history-header">
-      <h3>History</h3>
-    </div>
-    <div id="listContainer" class="list-container"></div>
+    <!-- TAB 3: ANALYTICS & REPORTS -->
+    <div id="panel-reports" class="view-panel">
+      <h3>Reports & Distributions</h3>
+      <div class="chart-box">
+        <h4 style="margin: 0 0 12px 0;">Category-wise Spending (This Month)</h4>
+        <canvas id="categoryWheel" width="240" height="240"></canvas>
+      </div>
 
-    <div class="backup-zone">
-      <button class="backup-btn" onclick="exportBackup()">📤 Export Data</button>
-      <button class="backup-btn" onclick="document.getElementById('importFile').click()">📥 Import Backup</button>
-      <input type="file" id="importFile" style="display:none" accept=".json" onchange="importBackup(event)">
+      <h3 style="margin-top:24px;">Export Core Engine Data</h3>
+      <div class="form-card" style="display: flex; flex-direction: column; gap: 4px;">
+        <button class="btn" onclick="exportDataBundle('json')">Download JSON Data</button>
+        <button class="btn btn-secondary" onclick="exportDataBundle('csv')">Download CSV Sheet</button>
+      </div>
     </div>
   </div>
 
+  <!-- STICKY SYSTEMS NAVIGATION SYSTEM BAR -->
+  <nav class="navbar">
+    <button class="nav-tab active" onclick="switchTab('dash')">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-tab" onclick="switchTab('history')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+      History
+    </button>
+    <button class="nav-tab" onclick="switchTab('reports')">
+      <svg viewBox="0 0 24 24"><path d="M5 19h14v2H5zM19 17H5v-2h14zm0-4H5v-2h14zm0-4H5V7h14z"/></svg>
+      Reports
+    </button>
+  </nav>
+
   <script src="db.js"></script>
   <script>
-    const form = document.getElementById('ledgerForm');
-    
-    async function updateUI() {
-      const data = await getAllDocs();
-      const container = document.getElementById('listContainer');
-      container.innerHTML = '';
+    // Set default date picker target value to current physical device date
+    document.getElementById('txDate').value = new Date().toISOString().slice(0, 10);
 
-      let net = 0, inc = 0, exp = 0;
+    function switchTab(target) {
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      
+      document.getElementById(`panel-${target}`).classList.add('active');
+      event.currentTarget.classList.add('active');
 
-      data.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(item => {
-        const val = parseFloat(item.amount);
-        if(item.category === 'income') {
-          inc += val;
-          net += val;
+      if (target === 'reports') renderVersion1ReportWheel();
+      if (target === 'history' || target === 'dash') updateSystemLedgerMetrics();
+    }
+
+    // Dynamic Intake Processing
+    document.getElementById('txForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('txAmt').value);
+      const type = document.getElementById('txType').value;
+      const date = document.getElementById('txDate').value;
+      const category = document.getElementById('txCat').value;
+      const notes = document.getElementById('txNotes').value;
+
+      await writeToStore(STORE_TX, { amount, type, date, category, notes });
+      
+      document.getElementById('txForm').reset();
+      document.getElementById('txDate').value = new Date().toISOString().slice(0, 10);
+      updateSystemLedgerMetrics();
+      alert("Entry successfully committed to device memory!");
+    });
+
+    // Date Logic Chunking Engine
+    async function updateSystemLedgerMetrics() {
+      const data = await getAllFromStore(STORE_TX);
+      
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      
+      // Calculate current week start boundaries
+      const currentDayOfWeek = now.getDay();
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - currentDayOfWeek);
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      let netBalance = 0, monthlyIncome = 0, monthlyExpense = 0;
+
+      // Reset DOM target zones cleanly
+      const zones = {
+        today: document.getElementById('group-today'),
+        yesterday: document.getElementById('group-yesterday'),
+        week: document.getElementById('group-week'),
+        month: document.getElementById('group-month')
+      };
+      Object.values(zones).forEach(z => z.innerHTML = '');
+
+      // Process global analytics balances and timeframe tracking loops
+      data.forEach(item => {
+        const itemAmt = parseFloat(item.amount);
+        const itemDate = new Date(item.date);
+        
+        // Calculate global totals
+        if (item.type === 'income') {
+          netBalance += itemAmt;
+          if (itemDate >= startOfMonth) monthlyIncome += itemAmt;
         } else {
-          exp += val;
-          net -= val;
+          netBalance -= itemAmt;
+          if (itemDate >= startOfMonth) monthlyExpense += itemAmt;
         }
 
-        const div = document.createElement('div');
-        div.className = 'tx-item';
-        div.innerHTML = `
+        // Render historical lists chronologically grouped by buckets
+        const uiElement = document.createElement('div');
+        uiElement.className = 'tx-item';
+        uiElement.innerHTML = `
           <div class="tx-details">
-            <div>${item.description}</div>
-            <span>${new Date(item.date).toLocaleDateString()}</span>
+            <strong>${item.category}</strong>
+            <span>${item.notes ? item.notes + ' • ' : ''}${item.date}</span>
           </div>
           <div style="display:flex; align-items:center; gap:12px;">
-            <span class="tx-amount ${item.category}">
-              ${item.category === 'income' ? '+' : '-'}₹${val.toFixed(2)}
-            </span>
-            <button class="del-btn" onclick="deleteEntry(${item.id})">✕</button>
+            <span class="tx-amount ${item.type}">${item.type === 'income' ? '+' : '-'}₹${itemAmt.toFixed(2)}</span>
+            <button class="del-btn" onclick="wipeTransactionRecord(${item.id})">✕</button>
           </div>
         `;
-        container.appendChild(div);
-      });
 
-      document.getElementById('totalBalance').innerText = `₹${net.toFixed(2)}`;
-      document.getElementById('totalIncome').innerText = `₹${inc.toFixed(2)}`;
-      document.getElementById('totalExpense').innerText = `₹${exp.toFixed(2)}`;
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const description = document.getElementById('desc').value;
-      const amount = document.getElementById('amt').value;
-      const category = document.getElementById('category').value;
-
-      await addDoc({
-        description,
-        amount: parseFloat(amount),
-        category,
-        date: new Date().toISOString()
-      });
-
-      form.reset();
-      updateUI();
-    });
-
-    async function deleteEntry(id) {
-      if(confirm("Delete this entry?")) {
-        await deleteDoc(id);
-        updateUI();
-      }
-    }
-
-    async function exportBackup() {
-      const data = await getAllDocs();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `ledger-backup-${new Date().toISOString().slice(0,10)}.json`;
-      a.click();
-    }
-
-    function importBackup(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if(Array.isArray(parsed)) {
-            await clearAndImportDocs(parsed);
-            alert("Backup imported successfully!");
-            updateUI();
-          } else {
-            alert("Invalid backup structure.");
-          }
-        } catch(err) {
-          alert("Error parsing file.");
+        if (itemDate >= startOfToday) {
+          zones.today.appendChild(uiElement);
+        } else if (itemDate >= startOfYesterday && itemDate < startOfToday) {
+          zones.yesterday.appendChild(uiElement);
+        } else if (itemDate >= startOfWeek) {
+          zones.week.appendChild(uiElement);
+        } else if (itemDate >= startOfMonth) {
+          zones.month.appendChild(uiElement);
         }
-      };
-      reader.readAsText(file);
+      });
+
+      // Handle empty historical states gracefully
+      Object.entries(zones).forEach(([key, element]) => {
+        if (element.children.length === 0) {
+          element.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem; display:block; padding:4px 0;">No logs matching ${key}.</span>`;
+        }
+      });
+
+      document.getElementById('totalBalance').innerText = `₹${netBalance.toFixed(2)}`;
+      document.getElementById('totalIncome').innerText = `₹${monthlyIncome.toFixed(2)}`;
+      document.getElementById('totalExpense').innerText = `₹${monthlyExpense.toFixed(2)}`;
     }
 
-    // Register Service Worker over relative pathing
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then((reg) => console.log('Service Worker Registered Successfully!'))
-          .catch((err) => console.log('Registration broken: ', err));
+    async function wipeTransactionRecord(id) {
+      if(confirm("Permanently wipe this ledger entry record?")) {
+        await deleteFromStore(STORE_TX, id);
+        updateSystemLedgerMetrics();
+      }
+    }
+
+    // Reports Native Dynamic Canvas Renderer 
+    async function renderVersion1ReportWheel() {
+      const canvas = document.getElementById('categoryWheel');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const txs = await getAllFromStore(STORE_TX);
+      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      
+      const categoryMap = { Food: 0, Transport: 0, Shopping: 0, Bills: 0, Health: 0, Entertainment: 0, Other: 0 };
+      let monthTotalExpenses = 0;
+
+      txs.filter(t => t.type === 'expense' && new Date(t.date) >= startOfMonth).forEach(t => {
+        if (categoryMap[t.category] !== undefined) {
+          categoryMap[t.category] += t.amount;
+          monthTotalExpenses += t.amount;
+        }
+      });
+
+      if (monthTotalExpenses === 0) {
+        ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.font = '13px sans-serif';
+        ctx.fillText('No matching monthly data points.', canvas.width / 2, canvas.height / 2);
+        return;
+      }
+
+      const colors = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#a855f7', '#ec4899', '#64748b'];
+      let startAngle = 0, colorIdx = 0;
+
+      Object.entries(categoryMap).forEach(([cat, value]) => {
+        if (value === 0) return;
+        const sliceAngle = (value / monthTotalExpenses) * 2 * Math.PI;
+
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, canvas.height / 2);
+        ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2 - 25, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[colorIdx % colors.length];
+        ctx.fill();
+
+        const midAngle = startAngle + sliceAngle / 2;
+        const textX = canvas.width / 2 + Math.cos(midAngle) * (canvas.width / 3.2);
+        const textY = canvas.height / 2 + Math.sin(midAngle) * (canvas.height / 3.2);
+        
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(`${((value / monthTotalExpenses) * 100).toFixed(0)}%`, textX, textY);
+
+        startAngle += sliceAngle;
+        colorIdx++;
       });
     }
 
-    let deferPrompt;
-    const pwaBtn = document.getElementById('pwaBtn');
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferPrompt = e;
-      pwaBtn.style.display = 'block';
-    });
+    // Direct String Compilation Data Exporter Core
+    async function exportDataBundle(format) {
+      const records = await getAllFromStore(STORE_TX);
+      if(records.length === 0) return alert("Nothing compiled to export yet.");
 
-    pwaBtn.addEventListener('click', () => {
-      if (deferPrompt) {
-        deferPrompt.prompt();
-        deferPrompt.userChoice.then(() => {
-          pwaBtn.style.display = 'none';
-          deferPrompt = null;
+      let blob, filename;
+
+      if (format === 'json') {
+        blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+        filename = `ledger-export-${new Date().toISOString().slice(0,10)}.json`;
+      } else if (format === 'csv') {
+        // Standard CSV RFC header string injection block
+        let csvContent = "ID,Amount,Type,Date,Category,Notes\n";
+        records.forEach(r => {
+          // Escape quote signs inside comments safely
+          const escapedNotes = (r.notes || "").replace(/"/g, '""');
+          csvContent += `${r.id},${r.amount},${r.type},${r.date},${r.category},"${escapedNotes}"\n`;
         });
+        blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        filename = `ledger-sheet-${new Date().toISOString().slice(0,10)}.csv`;
       }
-    });
 
-    window.addEventListener('DOMContentLoaded', updateUI);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename;
+      anchor.click(); URL.revokeObjectURL(url);
+    }
+
+    // Direct system initial startup hook bindings
+    window.addEventListener('DOMContentLoaded', updateSystemLedgerMetrics);
   </script>
 </body>
 </html>

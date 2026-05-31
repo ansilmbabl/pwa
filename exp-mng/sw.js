@@ -1,42 +1,44 @@
-const CACHE_NAME = 'ledger-v4';
+const CACHE_NAME = "ledger-v1-cache-v1";
 const ASSETS = [
-  './',
-  './index.html',
-  './styles.css',
-  './db.js',
-  './manifest.json',
-  'https://cdn-icons-png.flaticon.com/512/2454/2454269.png'
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./db.js",
+  "./manifest.json"
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
+// Installation Lifecycle Hook - Cache Core Blueprint
+self.addEventListener("install", (event) => {
+  event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
-    })
+    }).then(() => self.skipWaiting())
   );
-  self.skipWaiting(); 
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) => Promise.all(
-      keys.map((key) => {
-        if (key !== CACHE_NAME) return caches.delete(key);
-      })
-    ))
+// Cache Cleaning Step - Drop old versions if the cache name increments
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
-  return self.clients.claim(); 
 });
 
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((cachedResponse) => {
+// Resource Interception Handling (Cache-First Model)
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        return cachedResponse; 
+        return cachedResponse;
       }
-      return fetch(e.request).catch(() => {
-        console.log('Offline asset fallback request execution failed.');
-      });
+      return fetch(event.request);
     })
   );
 });
