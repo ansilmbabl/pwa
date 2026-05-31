@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Ledger</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+  <div class="app-wrapper">
+    <header>
+      <h1>Ledger</h1>
+      <button id="pwaBtn" class="btn-pwa">Install App</button>
+    </header>
+
+    <div class="balance-card">
+      <span style="color: var(--text-muted);">Net Balance</span>
+      <h2 id="totalBalance">₹0.00</h2>
+      <div class="grid-2">
+        <div class="stat-box">
+          <span style="color: var(--income);">▲ Income</span>
+          <div id="totalIncome" style="font-weight: bold; margin-top:4px;">₹0.00</div>
+        </div>
+        <div class="stat-box">
+          <span style="color: var(--expense);">▼ Expenses</span>
+          <div id="totalExpense" style="font-weight: bold; margin-top:4px;">₹0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <form id="ledgerForm">
+        <input type="text" id="desc" placeholder="Description" required>
+        <input type="number" id="amt" placeholder="Amount (₹)" step="0.01" required>
+        <select id="category">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+        <button type="submit" class="submit-btn">Save Entry</button>
+      </form>
+    </div>
+
+    <div class="history-header">
+      <h3>History</h3>
+    </div>
+    <div id="listContainer" class="list-container"></div>
+
+    <div class="backup-zone">
+      <button class="backup-btn" onclick="exportBackup()">📤 Export Data</button>
+      <button class="backup-btn" onclick="document.getElementById('importFile').click()">📥 Import Backup</button>
+      <input type="file" id="importFile" style="display:none" accept=".json" onchange="importBackup(event)">
+    </div>
+  </div>
+
+  <script src="db.js"></script>
+  <script>
+    const form = document.getElementById('ledgerForm');
+    
+    async function updateUI() {
+      const data = await getAllDocs();
+      const container = document.getElementById('listContainer');
+      container.innerHTML = '';
+
+      let net = 0, inc = 0, exp = 0;
+
+      data.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(item => {
+        const val = parseFloat(item.amount);
+        if(item.category === 'income') {
+          inc += val;
+          net += val;
+        } else {
+          exp += val;
+          net -= val;
+        }
+
+        const div = document.createElement('div');
+        div.className = 'tx-item';
+        div.innerHTML = `
+          <div class="tx-details">
+            <div>${item.description}</div>
+            <span>${new Date(item.date).toLocaleDateString()}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="tx-amount ${item.category}">
+              ${item.category === 'income' ? '+' : '-'}₹${val.toFixed(2)}
+            </span>
+            <button class="del-btn" onclick="deleteEntry(${item.id})">✕</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById('totalBalance').innerText = `₹${net.toFixed(2)}`;
+      document.getElementById('totalIncome').innerText = `₹${inc.toFixed(2)}`;
+      document.getElementById('totalExpense').innerText = `₹${exp.toFixed(2)}`;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const description = document.getElementById('desc').value;
+      const amount = document.getElementById('amt').value;
+      const category = document.getElementById('category').value;
+
+      await addDoc({
+        description,
+        amount: parseFloat(amount),
+        category,
+        date: new Date().toISOString()
+      });
+
+      form.reset();
+      updateUI();
+    });
+
+    async function deleteEntry(id) {
+      if(confirm("Delete this entry?")) {
+        await deleteDoc(id);
+        updateUI();
+      }
+    }
+
+    async function exportBackup() {
+      const data = await getAllDocs();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ledger-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    }
+
+    function importBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if(Array.isArray(parsed)) {
+            await clearAndImportDocs(parsed);
+            alert("Backup imported successfully!");
+            updateUI();
+          } else {
+            alert("Invalid backup structure.");
+          }
+        } catch(err) {
+          alert("Error parsing file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Register Service Worker over relative pathing
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('Service Worker Registered Successfully!'))
+          .catch((err) => console.log('Registration broken: ', err));
+      });
+    }
+
+    let deferPrompt;
+    const pwaBtn = document.getElementById('pwaBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferPrompt = e;
+      pwaBtn.style.display = 'block';
+    });
+
+    pwaBtn.addEventListener('click', () => {
+      if (deferPrompt) {
+        deferPrompt.prompt();
+        deferPrompt.userChoice.then(() => {
+          pwaBtn.style.display = 'none';
+          deferPrompt = null;
+        });
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', updateUI);
+  </script>
+</body>
+</html>
