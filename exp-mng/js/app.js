@@ -29,6 +29,10 @@ import { initTheme, toggleTheme, setAppCurrency, renderThemeSettings } from "./t
 import { renderMileagePanel, addMileageEntry, setMileageRate } from "./mileage.js";
 import { initAllSectionTabs, activatePane } from "./tabs.js";
 import { bindTour, maybeShowTourOnFirstVisit } from "./tour.js";
+import {
+  registerServiceWorker, finishUpdateOnLaunch, bindUpdateControls,
+  renderUpdatePanel, showUpdateBanner,
+} from "./update.js";
 
 let deferredPrompt;
 
@@ -91,6 +95,7 @@ function switchTab(target, btn) {
     renderThemeSettings();
     renderPinSettings();
     renderRulesPanel();
+    renderUpdatePanel();
   }
   if (target === "wallets") renderWalletsPanel();
   if (target === "mileage") renderMileagePanel();
@@ -470,18 +475,8 @@ function bindPWA() {
     deferredPrompt = null;
   });
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").then((reg) => {
-      reg.addEventListener("updatefound", () => {
-        const nw = reg.installing;
-        nw?.addEventListener("statechange", () => {
-          if (nw.state === "installed" && navigator.serviceWorker.controller) {
-            toast("Update available — refresh the app", "info");
-          }
-        });
-      });
-    });
-  }
+  registerServiceWorker(() => showUpdateBanner());
+  bindUpdateControls();
 }
 
 function bindEvents() {
@@ -529,10 +524,12 @@ async function populateSelects() {
   await renderTagsManager(document.getElementById("tagsList"));
   await renderBackupFolderStatus();
   await renderRulesPanel();
+  await renderUpdatePanel();
 }
 
 export async function initApp() {
   await initDB();
+  await finishUpdateOnLaunch();
   await initTheme();
   setDefaultDateTimeFields(document.getElementById("txDate"), document.getElementById("txTime"));
   document.getElementById("recurNext") && (document.getElementById("recurNext").value = todayStr());

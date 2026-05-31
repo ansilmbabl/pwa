@@ -327,6 +327,14 @@
       </div>
 
       <div class="tab-pane" data-pane="data">
+        <div class="form-card update-card">
+          <h4>App update</h4>
+          <div id="updateStatus" class="muted"></div>
+          <div class="row-2" style="margin-top:10px">
+            <button type="button" id="updateAppBtn" class="btn">Update now</button>
+            <button type="button" id="checkUpdateBtn" class="btn btn-secondary">Check</button>
+          </div>
+        </div>
         <div class="form-card">
           <h4>Backup folder</h4>
           <p id="backupFolderStatus" class="muted"></p>
@@ -371,6 +379,12 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="updateBanner" class="update-banner hidden" role="status">
+    <span>A new version is available</span>
+    <button type="button" id="updateBannerBtn" class="btn btn-sm">Update</button>
+    <button type="button" id="updateBannerDismiss" class="icon-btn" aria-label="Dismiss">✕</button>
   </div>
 
   <!-- Transaction popup -->

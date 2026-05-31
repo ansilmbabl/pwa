@@ -24,6 +24,8 @@ Open `http://localhost:8080` (a local server is required for service workers).
 
 Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data**.
 
+**Updating:** You do not need to uninstall or clear cache manually. Use **Settings → Data → Update now** — it backs up your data, installs the latest version, and reloads. IndexedDB data normally survives updates; the backup is a safety net.
+
 ---
 
 ## All features
@@ -101,6 +103,8 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - **Tax:** deductible categories + mileage total
 
 ### Settings & data
+- **One-click app update** — Settings → Data → Update now (auto-backup, activate latest version, reload)
+- Update banner when a new version is detected
 - **Theme:** dark / light
 - **Currency:** INR, USD, EUR, GBP, JPY
 - **PIN lock** (4–6 digits, auto-lock after idle)

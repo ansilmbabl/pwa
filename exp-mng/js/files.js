@@ -65,9 +65,9 @@ export async function readFromBackupFolder(filename = BACKUP_JSON) {
   }
 }
 
-export async function saveJsonBackup(jsonString) {
+export async function saveJsonBackup(jsonString, quiet = false) {
   const saved = await writeToBackupFolder(BACKUP_JSON, jsonString);
-  if (saved) toast(`Saved to folder: ${BACKUP_JSON}`, "success");
+  if (saved && !quiet) toast(`Saved to folder: ${BACKUP_JSON}`, "success");
   return saved;
 }
 
