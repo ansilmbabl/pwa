@@ -1,4 +1,4 @@
-const CACHE_NAME = "ledger-v33-due-panel-add-popup";
+const CACHE_NAME = "ledger-v34-due-more-only";
 const ASSETS = [
   "./",
   "./index.html",

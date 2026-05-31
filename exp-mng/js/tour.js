@@ -36,7 +36,7 @@ const STEPS = [
   },
   {
     title: "More features",
-    body: "Open <strong>Due</strong> from the header or More for outgoing payments. The <strong>+ Add</strong> button opens a short form; full expense history stays under <strong>History</strong>. Other tools live under More.",
+    body: "Open <strong>Due</strong> from <strong>More</strong> for outgoing payments. The <strong>+ Add</strong> button opens a short form; full expense history stays under <strong>History</strong>. Other tools live under More.",
     highlightSel: "#morePopup .popup",
     placement: "above",
     openMore: true,

@@ -2835,20 +2835,6 @@ html[data-theme="light"] .navbar {
   display: block;
 }
 
-.due-header-badge {
-  display: inline-block;
-  min-width: 1.25rem;
-  padding: 0 5px;
-  margin-left: 2px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1.35;
-  background: var(--accent-soft, rgba(45, 212, 191, 0.2));
-  color: var(--accent);
-  vertical-align: middle;
-}
-
 .due-card-notes {
   font-size: 0.9rem;
   line-height: 1.4;

@@ -224,7 +224,6 @@ function bindNav() {
     resetForm();
     openAddSheet();
   });
-  document.getElementById("dueHeaderBtn")?.addEventListener("click", () => switchTab("due"));
   document.getElementById("refreshBtn")?.addEventListener("click", refreshAll);
 }
 

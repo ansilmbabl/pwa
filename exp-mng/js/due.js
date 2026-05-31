@@ -112,7 +112,6 @@ export async function renderDueInto(rootEl) {
 export async function renderDuePanels() {
   await renderDueInto(document.getElementById("dueRootMain"));
   await renderDashDueStrip();
-  updateDueHeaderBadge();
 }
 
 async function pickDefaultExpenseCategoryId() {
@@ -148,18 +147,6 @@ async function renderDashDueStrip() {
       <span class="dash-due-strip-title">Due</span>
       <span class="dash-due-strip-detail">${n} pending${overdue ? ` · ${overdue} overdue` : ""} · ${formatCurrency(sum)}</span>
     </button>`;
-}
-
-function updateDueHeaderBadge() {
-  const badge = document.getElementById("dueHeaderBadge");
-  const btn = document.getElementById("dueHeaderBtn");
-  if (!badge || !btn) return;
-  getAll(STORES.DUES).then((all) => {
-    const n = sortOpenDues(all).length;
-    badge.textContent = String(n);
-    badge.classList.toggle("hidden", n === 0);
-    btn.setAttribute("aria-label", n ? `Due payments, ${n} pending` : "Due payments");
-  });
 }
 
 function getDueAddPopup() {
