@@ -2,347 +2,309 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ledger V1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Ledger Core</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="styles.css">
 </head>
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js")
-        .then(reg => console.log("Service Worker registered successfully:", reg.scope))
-        .catch(err => console.error("Service Worker registration failed:", err));
-    });
-  }
-
-  // PWA Home Screen Installation Prompt Catching System
-  let deferredPrompt;
-  const pwaBtn = document.getElementById("pwaBtn");
-  
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    pwaBtn.style.display = "block";
-  });
-
-  pwaBtn.addEventListener("click", async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      pwaBtn.style.display = "none";
-    }
-    deferredPrompt = null;
-  });
-</script>
 <body>
-
   <div class="app-container">
     <header>
-      <h1 style="font-size: 1.3rem; margin: 0;">Ledger Core</h1>
-      <button id="pwaBtn" class="btn" style="width:auto; padding: 6px 12px; font-size:0.8rem; display:none;">Install</button>
+      <div class="header-brand">
+        <h1>Ledger Core</h1>
+        <span class="tagline">Personal finance</span>
+      </div>
+      <div class="header-actions">
+        <button type="button" id="refreshBtn" class="icon-btn" title="Refresh">↻</button>
+        <button type="button" id="pwaBtn" class="btn btn-sm btn-secondary" style="display:none;">Install</button>
+      </div>
     </header>
 
-    <!-- TAB 1: DASHBOARD & RECORD INTAKE -->
+    <!-- DASHBOARD -->
     <div id="panel-dash" class="view-panel active">
-      <div class="metric-card">
-        <span style="color: var(--text-muted); font-size: 0.9rem;">Remaining Balance</span>
-        <h2 id="totalBalance">₹0.00</h2>
-        <div class="grid-2">
-          <div class="stat-box">
-            <span style="color: var(--income); font-size:0.8rem;">Income (Month)</span>
-            <div id="totalIncome" style="font-weight:bold; margin-top:4px;">₹0.00</div>
-          </div>
-          <div class="stat-box">
-            <span style="color: var(--expense); font-size:0.8rem;">Expenses (Month)</span>
-            <div id="totalExpense" style="font-weight:bold; margin-top:4px;">₹0.00</div>
-          </div>
+      <div class="hero-card">
+        <span class="hero-label">Total balance · all time</span>
+        <h2 class="hero-balance" id="totalBalance">₹0.00</h2>
+        <div class="stats-grid">
+          <div class="stat-chip income"><span>Income</span><strong id="totalIncome">₹0.00</strong></div>
+          <div class="stat-chip expense"><span>Spent</span><strong id="totalExpense">₹0.00</strong></div>
+          <div class="stat-chip"><span>Month net</span><strong id="monthNet">₹0.00</strong></div>
+          <div class="stat-chip"><span>Left to spend</span><strong id="leftToSpendDisplay">₹0.00</strong></div>
         </div>
+        <div class="progress-track" style="margin-top:16px"><div id="dashBudgetBar" class="progress-fill" style="width:0"></div></div>
       </div>
+      <p id="emptyDash" class="empty-msg hidden">Tap + to add your first transaction</p>
 
-      <div class="form-card">
-        <h3 style="margin-top:0; margin-bottom:12px;">Add Transaction</h3>
-        <form id="txForm">
-          <div style="display: flex; gap: 8px;">
-            <input type="number" id="txAmt" placeholder="Amount (₹)" step="0.01" required style="flex: 2;">
-            <select id="txType" style="flex: 1;">
-              <option value="expense">Expense</option>
-              <option value="income">Income</option>
-            </select>
-          </div>
-          
-          <input type="date" id="txDate" required>
-          
-          <select id="txCat" required>
-            <option value="Food">Food</option>
-            <option value="Transport">Transport</option>
-            <option value="Shopping">Shopping</option>
-            <option value="Bills">Bills</option>
-            <option value="Health">Health</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Other">Other</option>
-          </select>
-          
-          <textarea id="txNotes" placeholder="Notes / Remarks..." rows="2"></textarea>
-          
-          <button type="submit" class="btn">Save Entry</button>
-        </form>
+      <p class="section-label">Recent</p>
+      <div class="card" id="recentCard">
+        <div id="recentActivity"></div>
       </div>
+      <button type="button" class="btn btn-secondary" id="openTxBtn" style="margin-top:4px">+ Add transaction</button>
     </div>
 
-    <!-- TAB 2: TRANSACTION TIMELINE HISTORY -->
+    <!-- HISTORY -->
     <div id="panel-history" class="view-panel">
-      <h3>Transaction Log History</h3>
-      
-      <div class="time-section">
-        <h4>Today</h4>
-        <div id="group-today"></div>
+      <div class="page-header">
+        <h3>History</h3>
+        <p>All your transactions</p>
       </div>
-      
-      <div class="time-section">
-        <h4>Yesterday</h4>
-        <div id="group-yesterday"></div>
+      <input type="search" id="historySearch" placeholder="Search notes, merchant, amount...">
+      <div class="row-2">
+        <select id="historyTypeFilter"><option value="all">All</option><option value="expense">Expenses</option><option value="income">Income</option></select>
+        <select id="historySort">
+          <option value="date-desc">Newest first</option><option value="date-asc">Oldest first</option>
+          <option value="amount-desc">Highest amount</option><option value="amount-asc">Lowest amount</option>
+        </select>
       </div>
-      
-      <div class="time-section">
-        <h4>This Week</h4>
-        <div id="group-week"></div>
-      </div>
-      
-      <div class="time-section">
-        <h4>This Month</h4>
-        <div id="group-month"></div>
-      </div>
+      <select id="historyCatFilter"><option value="">All categories</option></select>
+      <div id="historyList"></div>
     </div>
 
-    <!-- TAB 3: ANALYTICS & REPORTS -->
-    <div id="panel-reports" class="view-panel">
-      <h3>Reports & Distributions</h3>
-      <div class="chart-box">
-        <h4 style="margin: 0 0 12px 0;">Category-wise Spending (This Month)</h4>
-        <canvas id="categoryWheel" width="240" height="240"></canvas>
+    <!-- BUDGET -->
+    <div id="panel-budget" class="view-panel">
+      <h3>Budget</h3>
+      <div class="form-card">
+        <label>Monthly budget target (₹)</label>
+        <div class="row-2">
+          <input type="number" id="monthlyBudgetInput" placeholder="e.g. 20000" step="100">
+          <button type="button" id="saveBudgetBtn" class="btn">Save</button>
+        </div>
+        <div class="grid-2" style="margin-top:12px">
+          <div class="stat-box"><span class="muted">Spent</span><div id="budgetSpent">₹0</div></div>
+          <div class="stat-box"><span class="muted">Remaining</span><div id="budgetRemaining">₹0</div></div>
+        </div>
+        <div class="progress-track"><div id="budgetProgressBar" class="progress-fill" style="width:0"></div></div>
+        <p class="muted">Month net: <span id="monthNetDisplay">₹0</span></p>
       </div>
+      <h4>Category limits</h4>
+      <div id="categoryBudgetList"></div>
+    </div>
 
-      <h3 style="margin-top:24px;">Export Core Engine Data</h3>
-      <div class="form-card" style="display: flex; flex-direction: column; gap: 4px;">
-        <button class="btn" onclick="exportDataBundle('json')">Download JSON Data</button>
-        <button class="btn btn-secondary" onclick="exportDataBundle('csv')">Download CSV Sheet</button>
+    <!-- BILLS -->
+    <div id="panel-bills" class="view-panel">
+      <h3>Bills & Recurring</h3>
+      <button type="button" id="enableNotifBtn" class="btn-sm btn-secondary">Enable bill reminders</button>
+      <div class="grid-2" style="margin:12px 0">
+        <div class="stat-box"><span class="muted">Subscriptions / mo</span><div id="subMonthlyTotal">₹0</div></div>
+        <div class="stat-box"><span class="muted">Subscriptions / yr</span><div id="subYearlyTotal">₹0</div></div>
+      </div>
+      <form id="recurForm" class="form-card">
+        <h4>Add recurring</h4>
+        <div class="row-2"><input type="number" id="recurAmt" placeholder="Amount" required step="0.01"><select id="recurCat"></select></div>
+        <input type="text" id="recurMerchant" placeholder="Merchant">
+        <div class="row-2">
+          <select id="recurFreq"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="yearly">Yearly</option></select>
+          <input type="date" id="recurNext" required>
+        </div>
+        <label><input type="checkbox" id="recurSub"> Track as subscription</label>
+        <input type="text" id="recurNotes" placeholder="Notes">
+        <button type="submit" class="btn">Add rule</button>
+      </form>
+      <h4>Recurring rules</h4><div id="recurringList"></div>
+      <h4>Subscriptions</h4><div id="subscriptionList"></div>
+      <h4>Upcoming (30 days)</h4><div id="billsCalendar"></div>
+    </div>
+
+    <!-- GOALS -->
+    <div id="panel-goals" class="view-panel">
+      <h3>Goals & Funds</h3>
+      <form id="goalForm" class="form-card">
+        <h4>Savings goal</h4>
+        <input type="text" id="goalName" placeholder="Goal name" required>
+        <input type="number" id="goalTarget" placeholder="Target ₹" required step="100">
+        <input type="date" id="goalDeadline">
+        <button type="submit" class="btn">Create goal</button>
+      </form>
+      <div id="savingsGoalsList"></div>
+      <form id="fundForm" class="form-card">
+        <h4>Sinking fund</h4>
+        <input type="text" id="fundName" placeholder="Fund name" required>
+        <input type="number" id="fundTarget" placeholder="Target ₹" required step="100">
+        <button type="submit" class="btn">Create fund</button>
+      </form>
+      <div id="sinkingFundsList"></div>
+    </div>
+
+    <!-- EVENTS -->
+    <div id="panel-events" class="view-panel">
+      <h3>Events & Trips</h3>
+      <form id="eventForm" class="form-card">
+        <input type="text" id="eventName" placeholder="Event name" required>
+        <div class="row-2"><input type="date" id="eventStart" required><input type="date" id="eventEnd"></div>
+        <input type="number" id="eventBudget" placeholder="Budget ₹" step="100">
+        <button type="submit" class="btn">Create event</button>
+      </form>
+      <div id="eventsList"></div>
+      <h4>Split bills</h4>
+      <form id="splitForm" class="form-card">
+        <input type="text" id="splitName" placeholder="Group name" required>
+        <input type="text" id="splitMembers" placeholder="Members (comma separated)" required>
+        <button type="submit" class="btn">Create group</button>
+      </form>
+      <div id="splitGroupsList"></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="panel-reports" class="view-panel">
+      <div class="page-header">
+        <h3>Reports</h3>
+        <p>Spending insights</p>
+      </div>
+      <p id="weeklyRecap" class="recap-card"></p>
+      <div class="row-2">
+        <select id="reportMonth"></select>
+        <span class="muted">or range:</span>
+      </div>
+      <div class="row-2"><input type="date" id="reportFrom"><input type="date" id="reportTo"></div>
+      <div class="grid-2">
+        <div class="stat-box"><span class="income-label">Income</span><div id="reportIncome">₹0</div></div>
+        <div class="stat-box"><span class="expense-label">Expenses</span><div id="reportExpense">₹0</div></div>
+      </div>
+      <p>Net: <strong id="reportNet">₹0</strong></p>
+      <div class="chart-box">
+        <canvas id="categoryWheel" width="240" height="240"></canvas>
+        <div id="chartLegend" class="chart-legend"></div>
+      </div>
+      <h4>Top categories</h4><div id="topCategories"></div>
+      <h4>Spending trend (14 days)</h4>
+      <canvas id="trendChart" width="320" height="120"></canvas>
+      <h4>Yearly summary</h4><div id="yearlySummary"></div>
+      <h4>Month vs last month</h4><div id="categoryComparison"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="panel-settings" class="view-panel">
+      <div class="page-header">
+        <h3>Settings</h3>
+        <p>Backup & categories</p>
+      </div>
+      <div class="form-card">
+        <h4>Export</h4>
+        <button type="button" id="exportJsonBtn" class="btn">Download JSON backup</button>
+        <button type="button" id="exportCsvBtn" class="btn btn-secondary">Download CSV</button>
+        <button type="button" id="exportPdfBtn" class="btn btn-secondary">Print / PDF report</button>
+        <button type="button" id="exportEncBtn" class="btn btn-secondary">Encrypted backup</button>
+      </div>
+      <div class="form-card">
+        <h4>Import</h4>
+        <label class="btn btn-secondary file-btn">Import JSON<input type="file" id="importJsonInput" accept=".json" hidden></label>
+        <label class="btn btn-secondary file-btn">Import encrypted<input type="file" id="importEncInput" accept=".json" hidden></label>
+      </div>
+      <div class="form-card">
+        <h4>Categories</h4>
+        <div id="categoriesList"></div>
+        <div class="row-2">
+          <input type="text" id="newCatName" placeholder="Name">
+          <select id="newCatType"><option value="expense">Expense</option><option value="income">Income</option></select>
+        </div>
+        <div class="row-2"><input type="text" id="newCatIcon" placeholder="Icon emoji" maxlength="2"><input type="color" id="newCatColor" value="#64748b"></div>
+        <button type="button" id="addCatBtn" class="btn">Add category</button>
+      </div>
+      <div class="form-card">
+        <h4>Tags</h4>
+        <div id="tagsList"></div>
+        <div class="row-2"><input type="text" id="newTagName" placeholder="Tag name"><button type="button" id="addTagBtn" class="btn">Add</button></div>
+      </div>
+      <button type="button" id="clearDataBtn" class="btn btn-danger">Clear all data</button>
+    </div>
+  </div>
+
+  <!-- Transaction popup -->
+  <div class="popup-overlay" id="txPopup" aria-hidden="true">
+    <div class="popup popup-lg">
+      <div class="popup-head">
+        <h3 id="txFormTitle">Add transaction</h3>
+        <button type="button" class="popup-close" id="txPopupClose" aria-label="Close">✕</button>
+      </div>
+      <div class="popup-body">
+        <form id="txForm">
+          <div class="type-toggle" id="typeToggle">
+            <button type="button" class="type-pill active-expense" data-type="expense">Expense</button>
+            <button type="button" class="type-pill" data-type="income">Income</button>
+          </div>
+          <select id="txType" hidden>
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+          <div class="quick-amts">
+            <button type="button" class="btn-sm quick-amt" data-amt="100">₹100</button>
+            <button type="button" class="btn-sm quick-amt" data-amt="500">₹500</button>
+            <button type="button" class="btn-sm quick-amt" data-amt="1000">₹1k</button>
+            <button type="button" id="dupLastBtn" class="btn-sm btn-ghost">Repeat last</button>
+          </div>
+          <div class="field">
+            <label for="txAmt">Amount</label>
+            <input type="number" id="txAmt" placeholder="0.00" step="0.01" inputmode="decimal" required>
+          </div>
+          <div class="row-2">
+            <div class="field"><label for="txDate">Date</label><input type="date" id="txDate" required></div>
+            <div class="field"><label for="txCat">Category</label><select id="txCat" required></select></div>
+          </div>
+          <div class="field"><label for="txMerchant">Merchant</label><input type="text" id="txMerchant" placeholder="Where did you spend?"></div>
+          <div class="row-2">
+            <div class="field"><label for="txPayment">Payment</label>
+              <select id="txPayment">
+                <option value="Cash">Cash</option><option value="UPI">UPI</option>
+                <option value="Card">Card</option><option value="Bank">Bank</option>
+              </select>
+            </div>
+            <div class="field"><label for="txEvent">Event</label><select id="txEvent"></select></div>
+          </div>
+          <div class="field"><label for="txTags">Tags</label><input type="text" id="txTags" placeholder="vacation, work…"></div>
+          <div class="field"><label for="txNotes">Notes</label><textarea id="txNotes" placeholder="Optional note" rows="2"></textarea></div>
+          <div id="splitSection" style="display:none">
+            <p class="section-label">Split</p>
+            <div id="splitRows"></div>
+            <button type="button" id="addSplitBtn" class="btn-sm btn-ghost">+ Split line</button>
+          </div>
+          <div class="row-2" style="margin-top:8px">
+            <button type="submit" class="btn">Save</button>
+            <button type="button" id="txCancelBtn" class="btn btn-secondary">Cancel</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 
-  <!-- STICKY SYSTEMS NAVIGATION SYSTEM BAR -->
+  <!-- More menu popup -->
+  <div class="popup-overlay" id="morePopup" aria-hidden="true">
+    <div class="popup popup-sm">
+      <div class="popup-head">
+        <h3>More</h3>
+        <button type="button" class="popup-close" id="morePopupClose" aria-label="Close">✕</button>
+      </div>
+      <div class="popup-body more-grid">
+        <button type="button" class="more-link" data-panel="budget">Budget</button>
+        <button type="button" class="more-link" data-panel="bills">Bills</button>
+        <button type="button" class="more-link" data-panel="goals">Goals</button>
+        <button type="button" class="more-link" data-panel="events">Events</button>
+        <button type="button" class="more-link" data-panel="settings">Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" id="fabAdd" class="fab" title="Quick add">+</button>
+
   <nav class="navbar">
-    <button class="nav-tab active" onclick="switchTab('dash')">
-      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-      Dashboard
+    <button type="button" class="nav-tab active" data-tab="dash">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home
     </button>
-    <button class="nav-tab" onclick="switchTab('history')">
-      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-      History
+    <button type="button" class="nav-tab" data-tab="history">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>History
     </button>
-    <button class="nav-tab" onclick="switchTab('reports')">
-      <svg viewBox="0 0 24 24"><path d="M5 19h14v2H5zM19 17H5v-2h14zm0-4H5v-2h14zm0-4H5V7h14z"/></svg>
-      Reports
+    <button type="button" class="nav-tab" data-tab="reports">
+      <svg viewBox="0 0 24 24"><path d="M5 19h14v2H5zM19 17H5v-2h14zm0-4H5v-2h14zm0-4H5V7h14z"/></svg>Reports
+    </button>
+    <button type="button" class="nav-tab" id="moreToggle">
+      <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>More
     </button>
   </nav>
 
-  <script src="db.js"></script>
-  <script>
-    // Set default date picker target value to current physical device date
-    document.getElementById('txDate').value = new Date().toISOString().slice(0, 10);
-
-    function switchTab(target) {
-      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      
-      document.getElementById(`panel-${target}`).classList.add('active');
-      event.currentTarget.classList.add('active');
-
-      if (target === 'reports') renderVersion1ReportWheel();
-      if (target === 'history' || target === 'dash') updateSystemLedgerMetrics();
-    }
-
-    // Dynamic Intake Processing
-    document.getElementById('txForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const amount = parseFloat(document.getElementById('txAmt').value);
-      const type = document.getElementById('txType').value;
-      const date = document.getElementById('txDate').value;
-      const category = document.getElementById('txCat').value;
-      const notes = document.getElementById('txNotes').value;
-
-      await writeToStore(STORE_TX, { amount, type, date, category, notes });
-      
-      document.getElementById('txForm').reset();
-      document.getElementById('txDate').value = new Date().toISOString().slice(0, 10);
-      updateSystemLedgerMetrics();
-      alert("Entry successfully committed to device memory!");
-    });
-
-    // Date Logic Chunking Engine
-    async function updateSystemLedgerMetrics() {
-      const data = await getAllFromStore(STORE_TX);
-      
-      const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      
-      // Calculate current week start boundaries
-      const currentDayOfWeek = now.getDay();
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - currentDayOfWeek);
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      let netBalance = 0, monthlyIncome = 0, monthlyExpense = 0;
-
-      // Reset DOM target zones cleanly
-      const zones = {
-        today: document.getElementById('group-today'),
-        yesterday: document.getElementById('group-yesterday'),
-        week: document.getElementById('group-week'),
-        month: document.getElementById('group-month')
-      };
-      Object.values(zones).forEach(z => z.innerHTML = '');
-
-      // Process global analytics balances and timeframe tracking loops
-      data.forEach(item => {
-        const itemAmt = parseFloat(item.amount);
-        const itemDate = new Date(item.date);
-        
-        // Calculate global totals
-        if (item.type === 'income') {
-          netBalance += itemAmt;
-          if (itemDate >= startOfMonth) monthlyIncome += itemAmt;
-        } else {
-          netBalance -= itemAmt;
-          if (itemDate >= startOfMonth) monthlyExpense += itemAmt;
-        }
-
-        // Render historical lists chronologically grouped by buckets
-        const uiElement = document.createElement('div');
-        uiElement.className = 'tx-item';
-        uiElement.innerHTML = `
-          <div class="tx-details">
-            <strong>${item.category}</strong>
-            <span>${item.notes ? item.notes + ' • ' : ''}${item.date}</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="tx-amount ${item.type}">${item.type === 'income' ? '+' : '-'}₹${itemAmt.toFixed(2)}</span>
-            <button class="del-btn" onclick="wipeTransactionRecord(${item.id})">✕</button>
-          </div>
-        `;
-
-        if (itemDate >= startOfToday) {
-          zones.today.appendChild(uiElement);
-        } else if (itemDate >= startOfYesterday && itemDate < startOfToday) {
-          zones.yesterday.appendChild(uiElement);
-        } else if (itemDate >= startOfWeek) {
-          zones.week.appendChild(uiElement);
-        } else if (itemDate >= startOfMonth) {
-          zones.month.appendChild(uiElement);
-        }
-      });
-
-      // Handle empty historical states gracefully
-      Object.entries(zones).forEach(([key, element]) => {
-        if (element.children.length === 0) {
-          element.innerHTML = `<span style="color:var(--text-muted); font-size:0.85rem; display:block; padding:4px 0;">No logs matching ${key}.</span>`;
-        }
-      });
-
-      document.getElementById('totalBalance').innerText = `₹${netBalance.toFixed(2)}`;
-      document.getElementById('totalIncome').innerText = `₹${monthlyIncome.toFixed(2)}`;
-      document.getElementById('totalExpense').innerText = `₹${monthlyExpense.toFixed(2)}`;
-    }
-
-    async function wipeTransactionRecord(id) {
-      if(confirm("Permanently wipe this ledger entry record?")) {
-        await deleteFromStore(STORE_TX, id);
-        updateSystemLedgerMetrics();
-      }
-    }
-
-    // Reports Native Dynamic Canvas Renderer 
-    async function renderVersion1ReportWheel() {
-      const canvas = document.getElementById('categoryWheel');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const txs = await getAllFromStore(STORE_TX);
-      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      
-      const categoryMap = { Food: 0, Transport: 0, Shopping: 0, Bills: 0, Health: 0, Entertainment: 0, Other: 0 };
-      let monthTotalExpenses = 0;
-
-      txs.filter(t => t.type === 'expense' && new Date(t.date) >= startOfMonth).forEach(t => {
-        if (categoryMap[t.category] !== undefined) {
-          categoryMap[t.category] += t.amount;
-          monthTotalExpenses += t.amount;
-        }
-      });
-
-      if (monthTotalExpenses === 0) {
-        ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.font = '13px sans-serif';
-        ctx.fillText('No matching monthly data points.', canvas.width / 2, canvas.height / 2);
-        return;
-      }
-
-      const colors = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#a855f7', '#ec4899', '#64748b'];
-      let startAngle = 0, colorIdx = 0;
-
-      Object.entries(categoryMap).forEach(([cat, value]) => {
-        if (value === 0) return;
-        const sliceAngle = (value / monthTotalExpenses) * 2 * Math.PI;
-
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, canvas.height / 2);
-        ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2 - 25, startAngle, startAngle + sliceAngle);
-        ctx.closePath();
-        ctx.fillStyle = colors[colorIdx % colors.length];
-        ctx.fill();
-
-        const midAngle = startAngle + sliceAngle / 2;
-        const textX = canvas.width / 2 + Math.cos(midAngle) * (canvas.width / 3.2);
-        const textY = canvas.height / 2 + Math.sin(midAngle) * (canvas.height / 3.2);
-        
-        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(`${((value / monthTotalExpenses) * 100).toFixed(0)}%`, textX, textY);
-
-        startAngle += sliceAngle;
-        colorIdx++;
-      });
-    }
-
-    // Direct String Compilation Data Exporter Core
-    async function exportDataBundle(format) {
-      const records = await getAllFromStore(STORE_TX);
-      if(records.length === 0) return alert("Nothing compiled to export yet.");
-
-      let blob, filename;
-
-      if (format === 'json') {
-        blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
-        filename = `ledger-export-${new Date().toISOString().slice(0,10)}.json`;
-      } else if (format === 'csv') {
-        // Standard CSV RFC header string injection block
-        let csvContent = "ID,Amount,Type,Date,Category,Notes\n";
-        records.forEach(r => {
-          // Escape quote signs inside comments safely
-          const escapedNotes = (r.notes || "").replace(/"/g, '""');
-          csvContent += `${r.id},${r.amount},${r.type},${r.date},${r.category},"${escapedNotes}"\n`;
-        });
-        blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        filename = `ledger-sheet-${new Date().toISOString().slice(0,10)}.csv`;
-      }
-
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename;
-      anchor.click(); URL.revokeObjectURL(url);
-    }
-
-    // Direct system initial startup hook bindings
-    window.addEventListener('DOMContentLoaded', updateSystemLedgerMetrics);
-  </script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

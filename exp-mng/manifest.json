@@ -1,22 +1,19 @@
 {
   "short_name": "Ledger Core",
-  "name": "Ledger Personal Capital Core",
-  "description": "Minimalist V1 offline-first expense tracking utility.",
+  "name": "Ledger Core",
+  "description": "Offline-first personal expense tracker.",
   "icons": [
     {
-      "src": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4b3.png",
-      "type": "image/png",
-      "sizes": "72x72"
-    },
-    {
-      "src": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/512x512/1f4b3.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "icons/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
     }
   ],
   "start_url": "./index.html",
-  "background_color": "#0f172a",
-  "theme_color": "#1e293b",
+  "scope": "./",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
   "display": "standalone",
   "orientation": "portrait"
 }
