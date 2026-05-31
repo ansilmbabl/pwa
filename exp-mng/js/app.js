@@ -28,6 +28,7 @@ import { initLock, bindLockEvents, setupPin, removePin, renderPinSettings } from
 import { initTheme, toggleTheme, setAppCurrency, renderThemeSettings } from "./theme.js";
 import { renderMileagePanel, addMileageEntry, setMileageRate } from "./mileage.js";
 import { initAllSectionTabs, activatePane } from "./tabs.js";
+import { bindTour, maybeShowTourOnFirstVisit } from "./tour.js";
 
 let deferredPrompt;
 
@@ -552,11 +553,25 @@ export async function initApp() {
   bindLockEvents();
   initAllSectionTabs();
 
+  bindTour({
+    switchTab: (t) => switchTab(t),
+    openMore: openMorePopup,
+    closeMore: closeMorePopup,
+    activatePane: (panelId, pane) => activatePane(document.getElementById(panelId), pane),
+  });
+
   await populateSelects();
   await refreshAll();
   await checkBillReminders();
   await checkBackupReminder();
   await initLock();
+
+  maybeShowTourOnFirstVisit({
+    switchTab: (t) => switchTab(t),
+    openMore: openMorePopup,
+    closeMore: closeMorePopup,
+    activatePane: (panelId, pane) => activatePane(document.getElementById(panelId), pane),
+  });
 }
 
 document.addEventListener("DOMContentLoaded", initApp);
