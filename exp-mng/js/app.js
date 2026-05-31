@@ -23,7 +23,7 @@ import {
 import { shareReport } from "./share.js";
 import { getMonthlyBudget } from "./budget.js";
 import { importCSVFile } from "./import.js";
-import { renderWalletsPanel, renderDashWallets, addWallet, transferFunds } from "./wallets.js";
+import { renderWalletsPanel, renderDashWallets, addWallet, transferFunds, populateTxFormSelects } from "./wallets.js";
 import { renderRulesPanel, addAutoRule } from "./rules.js";
 import { initLock, bindLockEvents, setupPin, removePin, renderPinSettings } from "./lock.js";
 import { initTheme, toggleTheme, setAppCurrency, renderThemeSettings } from "./theme.js";
@@ -533,7 +533,7 @@ function bindEvents() {
 
 async function populateSelects() {
   await refreshAllCategorySelects();
-  await populateEventSelect(document.getElementById("txEvent"));
+  await populateTxFormSelects();
   const txs = await getTransactions();
   populateMonthPicker(document.getElementById("reportMonth"), txs);
 

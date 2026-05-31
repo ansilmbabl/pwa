@@ -343,7 +343,16 @@ function clearReceiptPreview() {
   if (input) input.value = "";
 }
 
+function setSplitSectionVisible(show) {
+  const section = document.getElementById("splitSection");
+  const toggle = document.getElementById("toggleSplitBtn");
+  if (section) section.hidden = !show;
+  if (toggle) toggle.hidden = show;
+}
+
 export async function fillFormFromTx(tx) {
+  const { populateTxFormSelects } = await import("./wallets.js");
+  await populateTxFormSelects();
   document.getElementById("txFormTitle").textContent = "Edit transaction";
   document.getElementById("txAmt").value = tx.amount;
   syncTypePills(tx.type);
@@ -367,8 +376,10 @@ export async function fillFormFromTx(tx) {
   await populateCategorySelect(document.getElementById("txCat"), tx.type);
   document.getElementById("txCat").value = tx.categoryId;
   if (tx.splits?.length) {
-    document.getElementById("splitSection").style.display = "block";
+    setSplitSectionVisible(true);
     renderSplitRows(tx.splits);
+  } else {
+    setSplitSectionVisible(false);
   }
   activatePane(document.getElementById("txForm"), tx.merchant || tx.notes || tx.tags?.length ? "details" : "essentials");
   openAddSheet();
@@ -385,7 +396,9 @@ export function syncTypePills(type) {
   });
 }
 
-export function openAddSheet() {
+export async function openAddSheet() {
+  const { populateTxFormSelects } = await import("./wallets.js");
+  await populateTxFormSelects();
   const popup = document.getElementById("txPopup");
   if (popup) {
     popup.classList.add("open");
@@ -409,8 +422,8 @@ export function resetForm() {
   document.getElementById("txFormTitle").textContent = "Add transaction";
   document.getElementById("txForm").reset();
   setDefaultDateTimeFields(document.getElementById("txDate"), document.getElementById("txTime"));
-  document.getElementById("splitSection").style.display = "none";
   document.getElementById("splitRows").innerHTML = "";
+  setSplitSectionVisible(false);
   pendingReceipt = null;
   clearReceiptPreview();
   syncTypePills("expense");
@@ -431,8 +444,16 @@ function splitRowHtml(i, s = {}) {
 }
 
 export function bindSplitControls() {
+  document.getElementById("toggleSplitBtn")?.addEventListener("click", () => {
+    setSplitSectionVisible(true);
+    const container = document.getElementById("splitRows");
+    if (!container.children.length) container.insertAdjacentHTML("beforeend", splitRowHtml(0));
+  });
+  document.getElementById("clearSplitBtn")?.addEventListener("click", () => {
+    document.getElementById("splitRows").innerHTML = "";
+    setSplitSectionVisible(false);
+  });
   document.getElementById("addSplitBtn")?.addEventListener("click", () => {
-    document.getElementById("splitSection").style.display = "block";
     const container = document.getElementById("splitRows");
     const i = container.children.length;
     container.insertAdjacentHTML("beforeend", splitRowHtml(i));

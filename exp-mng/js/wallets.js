@@ -31,15 +31,35 @@ export async function renderWalletsPanel() {
 
   const selFrom = document.getElementById("transferFrom");
   const selTo = document.getElementById("transferTo");
-  const selTx = document.getElementById("txWallet");
   const opts = wallets.map((w) => `<option value="${w.id}">${w.icon || ""} ${escapeHtml(w.name)}</option>`).join("");
   if (selFrom) selFrom.innerHTML = opts;
   if (selTo) selTo.innerHTML = opts;
-  if (selTx) {
-    const def = wallets.find((w) => w.isDefault);
-    selTx.innerHTML = opts;
-    if (def) selTx.value = def.id;
+  await populateTxWalletSelect(wallets);
+}
+
+export async function populateTxWalletSelect(walletsIn) {
+  const selTx = document.getElementById("txWallet");
+  if (!selTx) return;
+  const wallets = walletsIn || await getAll(STORES.WALLETS);
+  const prev = selTx.value;
+  if (!wallets.length) {
+    selTx.innerHTML = `<option value="">No wallet</option>`;
+    return;
   }
+  selTx.innerHTML = wallets.map((w) =>
+    `<option value="${w.id}">${w.icon || "💳"} ${escapeHtml(w.name)}</option>`,
+  ).join("");
+  const def = wallets.find((w) => w.isDefault);
+  if (prev && wallets.some((w) => String(w.id) === String(prev))) selTx.value = prev;
+  else if (def) selTx.value = def.id;
+}
+
+export async function populateTxFormSelects() {
+  const { populateEventSelect } = await import("./goals.js");
+  await Promise.all([
+    populateEventSelect(document.getElementById("txEvent")),
+    populateTxWalletSelect(),
+  ]);
 }
 
 export async function addWallet(name, type = "other", icon = "💳", color = "#64748b") {

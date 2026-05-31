@@ -1,6 +1,7 @@
 import { STORES, getAll, getCategories } from "./db.js";
 import { parseLocalDate, parseDateTime, todayStr, monthKey, formatMonthLabel, startOfMonth, startOfWeek, inRange, formatDisplayDateTime } from "./dates.js";
 import { formatCurrency, escapeHtml } from "./ui.js";
+import { renderSpendingAdvice } from "./advice.js";
 
 let reportMode = "month";
 let reportMonth = monthKey(todayStr());
@@ -113,6 +114,7 @@ export async function renderReports() {
   renderSpendingHeatmap(periodTxs);
   await renderCashFlowForecast();
   await renderTaxReport(expenses, cats);
+  await renderSpendingAdvice(document.getElementById("spendingAdvice"));
 }
 
 function renderPieChart(expenses, cats) {

@@ -9,15 +9,18 @@
   <title>Ledger Core</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-container">
     <header>
       <div class="header-brand">
-        <h1>Ledger Core</h1>
-        <span class="tagline">Personal finance</span>
+        <img src="icons/icon.svg" alt="" class="header-icon" width="28" height="28">
+        <div>
+          <h1>Ledger Core</h1>
+          <span class="tagline">Personal finance</span>
+        </div>
       </div>
       <div class="header-actions">
         <button type="button" id="refreshBtn" class="icon-btn" title="Refresh">↻</button>
@@ -197,6 +200,7 @@
         <button type="button" class="section-tab active" data-pane="overview" role="tab" aria-selected="true">Overview</button>
         <button type="button" class="section-tab" data-pane="charts" role="tab">Charts</button>
         <button type="button" class="section-tab" data-pane="insights" role="tab">Insights</button>
+        <button type="button" class="section-tab" data-pane="advice" role="tab">Advice</button>
         <button type="button" class="section-tab" data-pane="tax" role="tab">Tax</button>
       </nav>
 
@@ -239,6 +243,11 @@
         <h4>Spending heatmap</h4><div id="spendingHeatmap"></div>
         <h4>Cash flow forecast</h4><div id="cashFlowForecast"></div>
         <h4>Yearly summary</h4><div id="yearlySummary"></div>
+      </div>
+
+      <div class="tab-pane" data-pane="advice">
+        <p class="muted hint">Personalised tips from your spending, budget, and trends.</p>
+        <div id="spendingAdvice"></div>
       </div>
 
       <div class="tab-pane" data-pane="tax">
@@ -294,15 +303,16 @@
         <p>India salary tax · FY 2025-26</p>
       </div>
       <nav class="section-tabs sticky-tabs" role="tablist">
-        <button type="button" class="section-tab active" data-pane="calc" role="tab" aria-selected="true">Calculator</button>
+        <button type="button" class="section-tab active" data-pane="calc" role="tab" aria-selected="true">Calc</button>
         <button type="button" class="section-tab" data-pane="hra" role="tab">HRA</button>
-        <button type="button" class="section-tab" data-pane="salary" role="tab">Salary target</button>
-        <button type="button" class="section-tab" data-pane="reference" role="tab">Reference</button>
+        <button type="button" class="section-tab" data-pane="salary" role="tab">Target</button>
+        <button type="button" class="section-tab" data-pane="reference" role="tab">Links</button>
       </nav>
 
       <div class="tab-pane active" data-pane="calc">
-        <div class="form-card">
-          <h4>Salary details <span class="muted">(both regimes)</span></h4>
+        <details class="collapse-card" open>
+          <summary>Salary details</summary>
+          <div class="collapse-body">
           <div class="field">
             <div class="field-label-row">
               <label for="taxGross">Annual gross salary (₹)</label>
@@ -335,14 +345,12 @@
               </select>
             </div>
           </div>
-        </div>
-
-        <div class="form-card">
-          <div class="tax-regime-head">
-            <h4>PF / EPF</h4>
-            <button type="button" class="info-btn" data-tax-help="pfEpf" aria-label="Help: PF">i</button>
           </div>
-          <p class="muted hint">Employee PF → 80C (old regime) · Employer PF → ₹7.5L cap with NPS</p>
+        </details>
+
+        <details class="collapse-card">
+          <summary>PF / EPF</summary>
+          <div class="collapse-body">
           <div class="check-row">
             <label><input type="checkbox" id="taxIncludePf" checked> Include PF in calculation</label>
           </div>
@@ -395,14 +403,12 @@
             <label><input type="checkbox" id="taxPfIn80C" checked> Add employee PF to 80C (old regime)</label>
             <button type="button" class="info-btn info-btn-sm" data-tax-help="pfIn80C" aria-label="Help">i</button>
           </div>
-        </div>
-
-        <div class="form-card tax-regime-card tax-regime-new">
-          <div class="tax-regime-head">
-            <h4>New regime</h4>
-            <button type="button" class="info-btn" data-tax-help="newRegime" aria-label="Help: new regime">i</button>
           </div>
-          <p class="muted hint">Default regime · lower slabs · ₹75k standard deduction applied automatically</p>
+        </details>
+
+        <details class="collapse-card">
+          <summary>New regime</summary>
+          <div class="collapse-body tax-regime-new-inner">
           <div class="tax-auto-badge">
             <span>Standard deduction: ₹75,000</span>
             <button type="button" class="info-btn info-btn-sm" data-tax-help="stdDedNew" aria-label="Help: standard deduction">i</button>
@@ -418,15 +424,13 @@
             </div>
             <input type="number" id="taxEmployerNpsPctNew" placeholder="14" step="0.5" value="14">
           </div>
-          <p class="muted hint tax-not-applicable">80C, HRA, 80D, and home loan interest do not apply in the new regime.</p>
-        </div>
-
-        <div class="form-card tax-regime-card tax-regime-old">
-          <div class="tax-regime-head">
-            <h4>Old regime</h4>
-            <button type="button" class="info-btn" data-tax-help="oldRegime" aria-label="Help: old regime">i</button>
+          <p class="muted hint tax-not-applicable">80C, HRA, 80D not applicable in new regime. <button type="button" class="link-btn info-btn-inline-text" data-tax-help="newRegime">What's included?</button></p>
           </div>
-          <p class="muted hint">Opt-in at filing · claim deductions below · ₹50k standard deduction applied automatically</p>
+        </details>
+
+        <details class="collapse-card">
+          <summary>Old regime deductions</summary>
+          <div class="collapse-body tax-regime-old-inner">
           <div class="tax-auto-badge">
             <span>Standard deduction: ₹50,000</span>
             <button type="button" class="info-btn info-btn-sm" data-tax-help="stdDedOld" aria-label="Help: standard deduction old">i</button>
@@ -524,22 +528,21 @@
             </div>
             <input type="number" id="taxEmployerNpsPctOld" placeholder="10" step="0.5" value="10">
           </div>
-        </div>
+          </div>
+        </details>
 
-        <div class="row-actions">
+        <div class="action-bar">
           <button type="button" id="taxCalcBtn" class="btn">Compare regimes</button>
-          <button type="button" id="taxClearBtn" class="btn btn-secondary">Clear</button>
+          <button type="button" id="taxClearBtn" class="btn btn-sm btn-ghost" title="Clear form">Clear</button>
         </div>
         <div id="taxCompareResult" style="margin-top:16px"></div>
       </div>
 
       <div class="tab-pane" data-pane="salary">
-        <div class="form-card">
-          <div class="tax-regime-head">
-            <h4>Salary target</h4>
-            <button type="button" class="info-btn" data-tax-help="salaryTarget" aria-label="Help">i</button>
-          </div>
-          <p class="muted hint">Uses PF &amp; deduction settings from the Calculator tab. Enter basic there for accurate PF.</p>
+        <details class="collapse-card" open>
+          <summary>Salary target</summary>
+          <div class="collapse-body">
+          <p class="muted hint">Uses PF &amp; deductions from the Calc tab.</p>
           <div class="field">
             <div class="field-label-row">
               <label for="salaryTargetInHand">Desired in-hand / month (₹)</label>
@@ -556,12 +559,13 @@
               <label class="radio-chip"><input type="radio" name="salaryRegime" value="both"><span>Compare</span></label>
             </div>
           </div>
+          </div>
+        </details>
+        <div class="action-bar">
+          <button type="button" id="salaryTargetBtn" class="btn">Calculate LPA</button>
+          <button type="button" id="salaryClearBtn" class="btn btn-sm btn-ghost" title="Clear">Clear</button>
         </div>
-        <div class="row-actions">
-          <button type="button" id="salaryTargetBtn" class="btn">Calculate required LPA</button>
-          <button type="button" id="salaryClearBtn" class="btn btn-secondary">Clear</button>
-        </div>
-        <div id="salaryTargetResult" style="margin-top:16px"></div>
+        <div id="salaryTargetResult" style="margin-top:12px"></div>
       </div>
 
       <div class="tab-pane" data-pane="hra">
@@ -778,17 +782,25 @@
               </div>
               <div class="field"><label for="txWallet">Wallet</label><select id="txWallet"></select></div>
             </div>
-            <div class="row-2">
-              <div class="field"><label for="txEvent">Event</label><select id="txEvent"></select></div>
-              <div class="field"><label for="txReceipt">Receipt</label><input type="file" id="txReceipt" accept="image/*" capture="environment"></div>
+            <div class="field"><label for="txEvent">Event</label><select id="txEvent"></select></div>
+            <div class="field">
+              <label>Receipt</label>
+              <label class="file-btn file-btn-block" for="txReceipt">📎 Attach photo</label>
+              <input type="file" id="txReceipt" accept="image/*" capture="environment" hidden>
             </div>
             <div id="receiptPreview" class="receipt-preview"></div>
             <div class="field"><label for="txTags">Tags</label><input type="text" id="txTags" placeholder="vacation, work…"></div>
             <div class="field"><label for="txNotes">Notes</label><textarea id="txNotes" placeholder="Optional note" rows="2"></textarea></div>
-            <div id="splitSection" style="display:none">
-              <p class="section-label">Split</p>
+            <div class="field split-toggle-row">
+              <button type="button" id="toggleSplitBtn" class="btn-sm btn-ghost">Split across categories</button>
+            </div>
+            <div id="splitSection" class="split-section" hidden>
+              <div class="split-head">
+                <p class="section-label">Split</p>
+                <button type="button" id="clearSplitBtn" class="btn-sm btn-ghost">Remove</button>
+              </div>
               <div id="splitRows"></div>
-              <button type="button" id="addSplitBtn" class="btn-sm btn-ghost">+ Split line</button>
+              <button type="button" id="addSplitBtn" class="btn-sm btn-ghost">+ Add line</button>
             </div>
           </div>
 
