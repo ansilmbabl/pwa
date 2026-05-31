@@ -52,6 +52,10 @@ export function addDays(dateStr, n) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+export function startOfYear(d = new Date()) {
+  return new Date(d.getFullYear(), 0, 1);
+}
+
 export function startOfMonth(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
@@ -59,6 +63,23 @@ export function startOfMonth(d = new Date()) {
 export function startOfWeek(d = new Date()) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() - d.getDay());
 }
+
+export function isInDashPeriod(dateStr, period) {
+  if (period === "all") return true;
+  const d = parseLocalDate(dateStr);
+  const now = new Date();
+  if (period === "week") return d >= startOfWeek(now);
+  if (period === "month") return d >= startOfMonth(now);
+  if (period === "year") return d >= startOfYear(now);
+  return true;
+}
+
+export const DASH_PERIOD_LABELS = {
+  week: "This week",
+  month: "This month",
+  year: "This year",
+  all: "All time",
+};
 
 export function inRange(dateStr, from, to) {
   const t = parseLocalDate(dateStr).getTime();

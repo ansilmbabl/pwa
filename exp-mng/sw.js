@@ -1,4 +1,4 @@
-const CACHE_NAME = "ledger-v21-share-image";
+const CACHE_NAME = "ledger-v26-init-fix";
 const ASSETS = [
   "./",
   "./index.html",
@@ -28,6 +28,10 @@ const ASSETS = [
   "./js/advice.js",
   "./js/notifications.js",
   "./js/export-brand.js",
+  "./js/category-filter.js",
+  "./js/category-picker.js",
+  "./js/calendar.js",
+  "./js/about.js",
   "./js/transactions.js",
   "./js/budget.js",
   "./js/bills.js",

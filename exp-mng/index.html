@@ -33,22 +33,28 @@
     <!-- DASHBOARD -->
     <div id="panel-dash" class="view-panel active">
       <div class="hero-card">
-        <span class="hero-label">Total balance · all time</span>
+        <nav class="dash-period-tabs section-tabs" role="tablist" aria-label="Dashboard period">
+          <button type="button" class="section-tab" data-dash-period="week" role="tab">Week</button>
+          <button type="button" class="section-tab active" data-dash-period="month" role="tab" aria-selected="true">Month</button>
+          <button type="button" class="section-tab" data-dash-period="year" role="tab">Year</button>
+          <button type="button" class="section-tab" data-dash-period="all" role="tab">All</button>
+        </nav>
+        <span class="hero-label" id="dashHeroLabel">Net · This month</span>
         <h2 class="hero-balance" id="totalBalance">₹0.00</h2>
         <div class="stats-grid">
           <div class="stat-chip income"><span>Income</span><strong id="totalIncome">₹0.00</strong></div>
           <div class="stat-chip expense"><span>Spent</span><strong id="totalExpense">₹0.00</strong></div>
-          <div class="stat-chip"><span>Month net</span><strong id="monthNet">₹0.00</strong></div>
-          <div class="stat-chip"><span>Left to spend</span><strong id="leftToSpendDisplay">₹0.00</strong></div>
+          <div class="stat-chip"><span id="dashNetLabel">Net</span><strong id="monthNet">₹0.00</strong></div>
+          <div class="stat-chip" id="dashExtraChip"><span id="dashExtraLabel">Left to spend</span><strong id="leftToSpendDisplay">₹0.00</strong></div>
         </div>
-        <div class="progress-track" style="margin-top:16px"><div id="dashBudgetBar" class="progress-fill" style="width:0"></div></div>
+        <div class="progress-track dash-budget-bar" style="margin-top:16px"><div id="dashBudgetBar" class="progress-fill" style="width:0"></div></div>
       </div>
       <p id="emptyDash" class="empty-msg hidden">Tap + to add your first transaction</p>
 
       <p class="section-label">Wallets</p>
       <div class="card" id="dashWallets"></div>
 
-      <p class="section-label">Recent</p>
+      <p class="section-label" id="recentSectionLabel">Recent · This month</p>
       <div class="card" id="recentCard">
         <div id="recentActivity"></div>
       </div>
@@ -70,14 +76,19 @@
             <option value="amount-desc">Highest amount</option><option value="amount-asc">Lowest amount</option>
           </select>
         </div>
-        <select id="historyCatFilter"><option value="">All categories</option></select>
+        <div class="cat-filter-block">
+          <div class="cat-filter-row">
+            <div id="historyCatFilter" class="cat-filter-summary"></div>
+            <button type="button" id="historyCatClear" class="btn-sm btn-ghost">Clear</button>
+          </div>
+        </div>
       </div>
       <div id="historyList"></div>
     </div>
 
     <!-- BUDGET -->
-    <div id="panel-budget" class="view-panel" data-section-tabs>
-      <div class="page-header"><h3>Budget</h3><p>Monthly targets & limits</p></div>
+    <div id="panel-budget" class="view-panel sub-panel" data-section-tabs>
+      <div class="page-header page-header-compact"><h3>Budget</h3><p>Monthly targets & limits</p></div>
       <nav class="section-tabs sticky-tabs" role="tablist">
         <button type="button" class="section-tab active" data-pane="overview" role="tab" aria-selected="true">Overview</button>
         <button type="button" class="section-tab" data-pane="categories" role="tab">Categories</button>
@@ -103,16 +114,15 @@
     </div>
 
     <!-- BILLS -->
-    <div id="panel-bills" class="view-panel" data-section-tabs>
-      <div class="page-header"><h3>Bills</h3><p>Recurring & subscriptions</p></div>
+    <div id="panel-bills" class="view-panel sub-panel" data-section-tabs>
+      <div class="page-header page-header-compact"><h3>Bills</h3><p>Recurring & subscriptions</p></div>
       <nav class="section-tabs sticky-tabs" role="tablist">
         <button type="button" class="section-tab active" data-pane="add" role="tab" aria-selected="true">Add</button>
         <button type="button" class="section-tab" data-pane="rules" role="tab">Rules</button>
         <button type="button" class="section-tab" data-pane="calendar" role="tab">Upcoming</button>
       </nav>
       <div class="tab-pane active" data-pane="add">
-        <button type="button" id="enableNotifBtn" class="btn-sm btn-secondary">Notification settings</button>
-        <div class="grid-2" style="margin:12px 0">
+        <div class="grid-2 subpanel-stats">
           <div class="stat-box"><span class="muted">Subscriptions / mo</span><div id="subMonthlyTotal">₹0</div></div>
           <div class="stat-box"><span class="muted">Subscriptions / yr</span><div id="subYearlyTotal">₹0</div></div>
         </div>
@@ -124,23 +134,24 @@
             <select id="recurFreq"><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="yearly">Yearly</option></select>
             <input type="date" id="recurNext" required>
           </div>
-          <label><input type="checkbox" id="recurSub"> Track as subscription</label>
+          <label class="field-block notif-toggle"><input type="checkbox" id="recurSub"> Track as subscription</label>
           <input type="text" id="recurNotes" placeholder="Notes">
           <button type="submit" class="btn">Add rule</button>
+          <p class="muted hint"><button type="button" id="enableNotifBtn" class="link-btn">Notification settings</button> for bill reminders</p>
         </form>
       </div>
       <div class="tab-pane" data-pane="rules">
-        <h4>Recurring rules</h4><div id="recurringList"></div>
-        <h4>Subscriptions</h4><div id="subscriptionList"></div>
+        <div class="subpanel-section"><p class="section-label">Recurring rules</p><div id="recurringList"></div></div>
+        <div class="subpanel-section"><p class="section-label">Subscriptions</p><div id="subscriptionList"></div></div>
       </div>
       <div class="tab-pane" data-pane="calendar">
-        <h4>Upcoming (30 days)</h4><div id="billsCalendar"></div>
+        <div class="subpanel-section"><p class="section-label">Upcoming (30 days)</p><div id="billsCalendar"></div></div>
       </div>
     </div>
 
     <!-- GOALS -->
-    <div id="panel-goals" class="view-panel" data-section-tabs>
-      <div class="page-header"><h3>Goals</h3><p>Savings & sinking funds</p></div>
+    <div id="panel-goals" class="view-panel sub-panel" data-section-tabs>
+      <div class="page-header page-header-compact"><h3>Goals</h3><p>Savings & sinking funds</p></div>
       <nav class="section-tabs sticky-tabs" role="tablist">
         <button type="button" class="section-tab active" data-pane="savings" role="tab" aria-selected="true">Savings</button>
         <button type="button" class="section-tab" data-pane="funds" role="tab">Funds</button>
@@ -152,7 +163,7 @@
           <input type="date" id="goalDeadline">
           <button type="submit" class="btn">Create goal</button>
         </form>
-        <div id="savingsGoalsList"></div>
+        <div id="savingsGoalsList" class="subpanel-list"></div>
       </div>
       <div class="tab-pane" data-pane="funds">
         <form id="fundForm" class="form-card">
@@ -160,13 +171,13 @@
           <input type="number" id="fundTarget" placeholder="Target amount" required step="100">
           <button type="submit" class="btn">Create fund</button>
         </form>
-        <div id="sinkingFundsList"></div>
+        <div id="sinkingFundsList" class="subpanel-list"></div>
       </div>
     </div>
 
     <!-- EVENTS -->
-    <div id="panel-events" class="view-panel" data-section-tabs>
-      <div class="page-header"><h3>Events</h3><p>Trips & split bills</p></div>
+    <div id="panel-events" class="view-panel sub-panel" data-section-tabs>
+      <div class="page-header page-header-compact"><h3>Events</h3><p>Trips & split bills</p></div>
       <nav class="section-tabs sticky-tabs" role="tablist">
         <button type="button" class="section-tab active" data-pane="trips" role="tab" aria-selected="true">Trips</button>
         <button type="button" class="section-tab" data-pane="splits" role="tab">Split bills</button>
@@ -178,7 +189,7 @@
           <input type="number" id="eventBudget" placeholder="Budget" step="100">
           <button type="submit" class="btn">Create event</button>
         </form>
-        <div id="eventsList"></div>
+        <div id="eventsList" class="subpanel-list"></div>
       </div>
       <div class="tab-pane" data-pane="splits">
         <form id="splitForm" class="form-card">
@@ -186,7 +197,7 @@
           <input type="text" id="splitMembers" placeholder="Members (comma separated)" required>
           <button type="submit" class="btn">Create group</button>
         </form>
-        <div id="splitGroupsList"></div>
+        <div id="splitGroupsList" class="subpanel-list"></div>
       </div>
     </div>
 
@@ -212,6 +223,12 @@
             <button type="button" id="clearReportRange" class="btn-sm btn-ghost">Clear range</button>
           </div>
           <div class="row-2"><input type="date" id="reportFrom"><input type="date" id="reportTo"></div>
+          <div class="cat-filter-block">
+            <div class="cat-filter-row">
+              <div id="reportCatFilter" class="cat-filter-summary"></div>
+              <button type="button" id="reportCatClear" class="btn-sm btn-ghost">Clear</button>
+            </div>
+          </div>
           <p class="muted">Showing: <strong id="reportPeriodLabel">—</strong></p>
         </div>
         <div class="grid-2">
@@ -256,15 +273,34 @@
       </div>
     </div>
 
+    <!-- CALENDAR -->
+    <div id="panel-calendar" class="view-panel sub-panel">
+      <div class="page-header page-header-compact">
+        <h3>Calendar</h3>
+        <p>Daily spending heatmap</p>
+      </div>
+      <div class="cal-toolbar">
+        <button type="button" id="calPrev" class="icon-btn" aria-label="Previous month">‹</button>
+        <strong id="calMonthLabel">—</strong>
+        <button type="button" id="calNext" class="icon-btn" aria-label="Next month">›</button>
+        <button type="button" id="calTodayBtn" class="btn-sm btn-ghost">Today</button>
+      </div>
+      <div class="cal-weekdays">
+        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+      </div>
+      <div id="calGrid" class="cal-grid"></div>
+      <div id="calDayDetail" class="card cal-day-detail"></div>
+    </div>
+
     <!-- WALLETS -->
-    <div id="panel-wallets" class="view-panel" data-section-tabs>
-      <div class="page-header"><h3>Wallets</h3><p>Accounts & transfers</p></div>
+    <div id="panel-wallets" class="view-panel sub-panel" data-section-tabs>
+      <div class="page-header page-header-compact"><h3>Wallets</h3><p>Accounts & transfers</p></div>
       <nav class="section-tabs sticky-tabs" role="tablist">
         <button type="button" class="section-tab active" data-pane="balances" role="tab" aria-selected="true">Balances</button>
         <button type="button" class="section-tab" data-pane="add" role="tab">Add</button>
         <button type="button" class="section-tab" data-pane="transfer" role="tab">Transfer</button>
       </nav>
-      <div class="tab-pane active" data-pane="balances"><div id="walletsList"></div></div>
+      <div class="tab-pane active" data-pane="balances"><div id="walletsList" class="subpanel-list"></div></div>
       <div class="tab-pane" data-pane="add">
         <form id="walletForm" class="form-card">
           <input type="text" id="walletName" placeholder="Wallet name" required>
@@ -285,20 +321,20 @@
     </div>
 
     <!-- MILEAGE -->
-    <div id="panel-mileage" class="view-panel">
-      <div class="page-header"><h3>Mileage</h3><p>Track deductible travel</p></div>
-      <p id="mileageTotal" class="recap-card"></p>
+    <div id="panel-mileage" class="view-panel sub-panel">
+      <div class="page-header page-header-compact"><h3>Mileage</h3><p>Track deductible travel</p></div>
+      <p id="mileageTotal" class="recap-card subpanel-recap"></p>
       <form id="mileageForm" class="form-card">
         <div class="row-2"><input type="number" id="mileageMiles" placeholder="Miles" step="0.1" required><input type="date" id="mileageDate" required></div>
         <input type="text" id="mileagePurpose" placeholder="Purpose / destination" required>
         <div class="row-2"><label>Rate ₹/mi <input type="number" id="mileageRate" step="0.5" value="15"></label><button type="submit" class="btn">Log trip</button></div>
       </form>
-      <div id="mileageList"></div>
+      <div id="mileageList" class="subpanel-list"></div>
     </div>
 
     <!-- TAX CALCULATOR (India) -->
-    <div id="panel-taxcalc" class="view-panel" data-section-tabs>
-      <div class="page-header">
+    <div id="panel-taxcalc" class="view-panel sub-panel" data-section-tabs>
+      <div class="page-header page-header-compact">
         <h3>Tax Calculator</h3>
         <p>India salary tax · FY 2025-26</p>
       </div>
@@ -624,6 +660,7 @@
         <button type="button" class="section-tab active" data-pane="general" role="tab" aria-selected="true">General</button>
         <button type="button" class="section-tab" data-pane="data" role="tab">Data</button>
         <button type="button" class="section-tab" data-pane="organize" role="tab">Organize</button>
+        <button type="button" class="section-tab" data-pane="about" role="tab">About</button>
       </nav>
 
       <div class="tab-pane active" data-pane="general">
@@ -730,7 +767,10 @@
             <button type="button" class="emoji-pick" data-emoji="🎁">🎁</button>
             <button type="button" class="emoji-pick" data-emoji="📦">📦</button>
           </div>
-          <select id="newCatParent"><option value="">No parent (top-level)</option></select>
+          <label class="field-block">Parent category (optional)
+            <select id="newCatParent"><option value="">No parent (top-level)</option></select>
+          </label>
+          <p class="muted hint">Choose a parent to create a subcategory (e.g. Food → Groceries).</p>
           <button type="button" id="addCatBtn" class="btn">Add category</button>
         </div>
         <div class="form-card">
@@ -738,6 +778,10 @@
           <div id="tagsList"></div>
           <div class="row-2"><input type="text" id="newTagName" placeholder="Tag name"><button type="button" id="addTagBtn" class="btn">Add</button></div>
         </div>
+      </div>
+
+      <div class="tab-pane" data-pane="about">
+        <div class="form-card about-panel" id="aboutPanelContent"></div>
       </div>
     </div>
   </div>
@@ -785,20 +829,25 @@
               <div class="field"><label for="txDate">Date</label><input type="date" id="txDate" required></div>
               <div class="field"><label for="txTime">Time</label><input type="time" id="txTime" required></div>
             </div>
-            <div class="field"><label for="txCat">Category</label><select id="txCat" required></select></div>
+            <div class="field cat-pick-field">
+              <label for="txCatPick">Category</label>
+              <select id="txCat" required class="sr-only-select" tabindex="-1" aria-hidden="true"></select>
+              <button type="button" id="txCatPick" class="cat-pick-trigger">
+                <span id="txCatPickLabel" class="cat-pick-label muted">Select category</span>
+                <span class="cat-pick-chevron" aria-hidden="true">›</span>
+              </button>
+            </div>
+            <div class="field"><label for="txPayment">Payment</label>
+              <select id="txPayment">
+                <option value="Cash">Cash</option><option value="UPI">UPI</option>
+                <option value="Card">Card</option><option value="Bank">Bank</option>
+              </select>
+            </div>
           </div>
 
           <div class="tab-pane" data-pane="details">
             <div class="field"><label for="txMerchant">Merchant</label><input type="text" id="txMerchant" placeholder="Where did you spend?"></div>
-            <div class="row-2">
-              <div class="field"><label for="txPayment">Payment</label>
-                <select id="txPayment">
-                  <option value="Cash">Cash</option><option value="UPI">UPI</option>
-                  <option value="Card">Card</option><option value="Bank">Bank</option>
-                </select>
-              </div>
-              <div class="field"><label for="txWallet">Wallet</label><select id="txWallet"></select></div>
-            </div>
+            <div class="field"><label for="txWallet">Wallet</label><select id="txWallet"></select></div>
             <div class="field"><label for="txEvent">Event</label><select id="txEvent"></select></div>
             <div class="field">
               <label>Receipt</label>
@@ -837,14 +886,17 @@
         <h3>More</h3>
         <button type="button" class="popup-close" id="morePopupClose" aria-label="Close">✕</button>
       </div>
-      <div class="popup-body more-grid">
-        <button type="button" class="more-link" data-panel="wallets"><span class="more-icon">💳</span>Wallets</button>
-        <button type="button" class="more-link" data-panel="budget"><span class="more-icon">📊</span>Budget</button>
-        <button type="button" class="more-link" data-panel="bills"><span class="more-icon">📅</span>Bills</button>
-        <button type="button" class="more-link" data-panel="goals"><span class="more-icon">🎯</span>Goals</button>
-        <button type="button" class="more-link" data-panel="events"><span class="more-icon">✈️</span>Events</button>
-        <button type="button" class="more-link" data-panel="mileage"><span class="more-icon">🚗</span>Mileage</button>
-        <button type="button" class="more-link" data-panel="taxcalc"><span class="more-icon">🧾</span>Tax calc</button>
+      <div class="popup-body more-grid-wrap">
+        <div class="more-grid">
+        <button type="button" class="more-link" data-panel="calendar"><span class="more-icon">🗓</span><span class="more-label">Calendar</span></button>
+        <button type="button" class="more-link" data-panel="wallets"><span class="more-icon">💳</span><span class="more-label">Wallets</span></button>
+        <button type="button" class="more-link" data-panel="budget"><span class="more-icon">📊</span><span class="more-label">Budget</span></button>
+        <button type="button" class="more-link" data-panel="bills"><span class="more-icon">📅</span><span class="more-label">Bills</span></button>
+        <button type="button" class="more-link" data-panel="goals"><span class="more-icon">🎯</span><span class="more-label">Goals</span></button>
+        <button type="button" class="more-link" data-panel="events"><span class="more-icon">✈️</span><span class="more-label">Events</span></button>
+        <button type="button" class="more-link" data-panel="mileage"><span class="more-icon">🚗</span><span class="more-label">Mileage</span></button>
+        <button type="button" class="more-link" data-panel="taxcalc"><span class="more-icon">🧾</span><span class="more-label">Tax calc</span></button>
+        </div>
       </div>
     </div>
   </div>

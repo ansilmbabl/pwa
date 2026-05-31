@@ -1,13 +1,15 @@
-import { STORES, getAll, getById, put, add, remove, getCategories, getSetting, setSetting, getDefaultWallet } from "./db.js";
-import { parseLocalDate, parseDateTime, todayStr, nowTimeStr, monthKey, formatMonthLabel, startOfMonth, startOfWeek, inRange, formatDisplayDateTime, setDefaultDateTimeFields } from "./dates.js";
+import { STORES, getAll, getById, put, add, remove, getCategories, getSetting, setSetting, getDefaultWallet, formatCategoryLabel } from "./db.js";
+import { parseLocalDate, parseDateTime, todayStr, nowTimeStr, monthKey, formatMonthLabel, startOfMonth, startOfWeek, inRange, formatDisplayDateTime, setDefaultDateTimeFields, isInDashPeriod, DASH_PERIOD_LABELS } from "./dates.js";
 import { toast, formatCurrency, categoryDot, escapeHtml, confirmInline, categoryOptionLabel } from "./ui.js";
 import { shareTransaction } from "./share.js";
 import { applyAutoRules } from "./rules.js";
 import { activatePane } from "./tabs.js";
+import { renderCategoryFilterTrigger, bindCategoryFilterClear } from "./category-filter.js";
+import { openCategoryPicker, getCategoryPickLabel, expandCategorySelection } from "./category-picker.js";
 
 let editId = null;
 let historySort = "date-desc";
-let historyFilter = { q: "", type: "all", categoryId: "" };
+let historyFilter = { q: "", type: "all", categoryIds: new Set() };
 let pendingReceipt = null;
 
 export function getEditId() { return editId; }
@@ -55,7 +57,7 @@ export async function saveTransaction(data, skipDupCheck = false) {
     date: data.date,
     time: data.time || nowTimeStr(),
     categoryId,
-    categoryName: cat ? cat.name : "Other",
+    categoryName: cat ? formatCategoryLabel(cat, cats) : "Other",
     merchant: data.merchant || "",
     paymentMethod: data.paymentMethod || "Cash",
     notes: data.notes || "",
@@ -87,14 +89,78 @@ export async function deleteTransaction(id) {
 }
 
 export async function duplicateLastTransaction() {
+  return fillFormFromLastTx();
+}
+
+export async function fillFormFromLastTx() {
   const txs = await getTransactions();
-  if (!txs.length) return toast("No transactions to duplicate", "error");
-  const last = { ...txs[0] };
-  delete last.id;
-  last.date = todayStr();
-  last.time = nowTimeStr();
-  await add(STORES.TX, last);
-  toast("Duplicated last entry", "success");
+  if (!txs.length) {
+    toast("No transactions to repeat", "error");
+    return false;
+  }
+  resetForm();
+  await fillFormFromTx(
+    { ...txs[0], date: todayStr(), time: nowTimeStr() },
+    { asNew: true },
+  );
+  toast("Last entry loaded — review and save", "info");
+  return true;
+}
+
+let dashPeriod = "month";
+
+export function getDashPeriod() {
+  return dashPeriod;
+}
+
+export async function setDashPeriod(period) {
+  dashPeriod = period;
+  await setSetting("dashPeriod", period);
+}
+
+export async function loadDashPeriod() {
+  const saved = await getSetting("dashPeriod");
+  if (saved && DASH_PERIOD_LABELS[saved]) dashPeriod = saved;
+}
+
+export function computeDashMetrics(txs, cats, budget, period = dashPeriod) {
+  let income = 0;
+  let expense = 0;
+  let totalBalance = 0;
+  let txCount = 0;
+  const catSpent = {};
+
+  txs.forEach((tx) => {
+    const amt = parseFloat(tx.amount);
+    if (tx.type === "income") totalBalance += amt;
+    else totalBalance -= amt;
+
+    if (!isInDashPeriod(tx.date, period)) return;
+    txCount += 1;
+    if (tx.type === "income") income += amt;
+    else {
+      expense += amt;
+      catSpent[tx.categoryId] = (catSpent[tx.categoryId] || 0) + amt;
+    }
+  });
+
+  const net = income - expense;
+  const heroIsBalance = period === "all";
+
+  return {
+    period,
+    income,
+    expense,
+    net,
+    totalBalance,
+    txCount,
+    leftToSpend: period === "month" && budget > 0 ? budget - expense : null,
+    heroAmount: heroIsBalance ? totalBalance : net,
+    heroLabel: heroIsBalance
+      ? `Balance · ${DASH_PERIOD_LABELS.all}`
+      : `Net · ${DASH_PERIOD_LABELS[period]}`,
+    catSpent,
+  };
 }
 
 export function computeMetrics(txs, cats, monthlyBudget = 0) {
@@ -127,10 +193,13 @@ export function computeMetrics(txs, cats, monthlyBudget = 0) {
   return { totalBalance, monthlyIncome, monthlyExpense, monthNet, weeklyExpense, leftToSpend, catSpent };
 }
 
-function filterTxs(txs) {
+function filterTxs(txs, cats) {
+  const expanded = historyFilter.categoryIds.size
+    ? expandCategorySelection(historyFilter.categoryIds, cats)
+    : null;
   return txs.filter((tx) => {
     if (historyFilter.type !== "all" && tx.type !== historyFilter.type) return false;
-    if (historyFilter.categoryId && tx.categoryId !== Number(historyFilter.categoryId)) return false;
+    if (expanded && !expanded.has(tx.categoryId)) return false;
     if (historyFilter.q) {
       const q = historyFilter.q.toLowerCase();
       const hay = `${tx.categoryName} ${tx.merchant} ${tx.notes} ${tx.amount} ${tx.time || ""}`.toLowerCase();
@@ -165,6 +234,7 @@ function bucketLabel(tx, now) {
 
 export function renderTxItem(tx, cats, onRefresh) {
   const cat = cats.find((c) => c.id === tx.categoryId);
+  const catLabel = cat ? formatCategoryLabel(cat, cats) : tx.categoryName;
   const el = document.createElement("div");
   el.className = "tx-item";
   el.dataset.id = tx.id;
@@ -173,7 +243,7 @@ export function renderTxItem(tx, cats, onRefresh) {
   const meta = [tx.merchant, tx.paymentMethod, tx.notes].filter(Boolean).join(" • ");
   el.innerHTML = `
     <div class="tx-details">
-      <strong>${categoryDot(cat?.color)} ${escapeHtml(tx.categoryName)}</strong>
+      <strong>${categoryDot(cat?.color)} ${escapeHtml(catLabel)}</strong>
       <span>${escapeHtml(meta || when)} • ${when}</span>
       ${tx.tags?.length ? `<span class="tag-row">${tx.tags.map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join("")}</span>` : ""}
     </div>
@@ -215,7 +285,7 @@ export function renderTxItem(tx, cats, onRefresh) {
 
 export async function renderHistory(container, onRefresh) {
   const [txs, cats] = await Promise.all([getTransactions(), getCategories()]);
-  const filtered = sortTxs(filterTxs(txs));
+  const filtered = sortTxs(filterTxs(txs, cats));
   const now = new Date();
   const buckets = new Map();
 
@@ -242,14 +312,16 @@ export async function renderHistory(container, onRefresh) {
   });
 }
 
-export async function renderRecentActivity(container, limit = 5) {
+export async function renderRecentActivity(container, limit = 5, period = dashPeriod) {
   const [txs, cats] = await Promise.all([getTransactions(), getCategories()]);
+  const filtered = txs.filter((t) => isInDashPeriod(t.date, period));
   container.innerHTML = "";
-  if (!txs.length) {
-    container.innerHTML = `<p class="empty-msg">No recent activity</p>`;
+  if (!filtered.length) {
+    const emptyLabel = period === "all" ? "No recent activity" : `No activity ${DASH_PERIOD_LABELS[period]?.toLowerCase() || "in this period"}`;
+    container.innerHTML = `<p class="empty-msg">${emptyLabel}</p>`;
     return;
   }
-  txs.slice(0, limit).forEach((tx) => {
+  filtered.slice(0, limit).forEach((tx) => {
     container.appendChild(renderTxItem(tx, cats, () => window.dispatchEvent(new Event("refresh-app"))));
   });
 }
@@ -258,14 +330,37 @@ export function bindHistoryControls() {
   const search = document.getElementById("historySearch");
   const typeFilter = document.getElementById("historyTypeFilter");
   const sortSelect = document.getElementById("historySort");
-  const catFilter = document.getElementById("historyCatFilter");
 
   if (search) search.oninput = () => { historyFilter.q = search.value; window.dispatchEvent(new Event("refresh-history")); };
   if (typeFilter) typeFilter.onchange = () => { historyFilter.type = typeFilter.value; window.dispatchEvent(new Event("refresh-history")); };
   if (sortSelect) sortSelect.onchange = () => { historySort = sortSelect.value; window.dispatchEvent(new Event("refresh-history")); };
-  if (catFilter) catFilter.onchange = () => { historyFilter.categoryId = catFilter.value; window.dispatchEvent(new Event("refresh-history")); };
+
+  bindCategoryFilterClear(document.getElementById("historyCatClear"), historyFilter.categoryIds, () => {
+    refreshHistoryCategoryFilter();
+    window.dispatchEvent(new Event("refresh-history"));
+  });
 }
 
+export async function refreshHistoryCategoryFilter() {
+  const container = document.getElementById("historyCatFilter");
+  if (!container) return;
+  const cats = await getCategories();
+  renderCategoryFilterTrigger(container, cats, historyFilter.categoryIds, () => {
+    refreshHistoryCategoryFilter();
+    window.dispatchEvent(new Event("refresh-history"));
+  }, "Filter categories");
+}
+
+
+export function updateTxCatPickLabel(cats) {
+  const select = document.getElementById("txCat");
+  const label = document.getElementById("txCatPickLabel");
+  if (!select || !label) return;
+  const id = Number(select.value);
+  const text = id && cats ? getCategoryPickLabel(cats, id) : null;
+  label.textContent = text || "Select category";
+  label.classList.toggle("muted", !text);
+}
 
 export async function populateCategorySelect(selectEl, type) {
   if (!selectEl) return;
@@ -280,21 +375,34 @@ export async function populateCategorySelect(selectEl, type) {
   } else if (last && last.type === type && cats.some((c) => c.id === Number(last.categoryId))) {
     selectEl.value = last.categoryId;
   }
+  updateTxCatPickLabel(cats);
+  return cats;
+}
+
+export function bindTxCategoryPicker() {
+  document.getElementById("txCatPick")?.addEventListener("click", async () => {
+    const type = document.getElementById("txType")?.value || "expense";
+    const cats = await getCategories(type);
+    const select = document.getElementById("txCat");
+    if (!cats.length) return toast("Add categories in Settings first", "info");
+    openCategoryPicker({
+      title: "Category",
+      categories: cats,
+      selectedId: Number(select?.value) || null,
+      multi: false,
+      onSelect: (id) => {
+        if (select) select.value = id;
+        updateTxCatPickLabel(cats);
+      },
+    });
+  });
 }
 
 export async function refreshAllCategorySelects() {
   const txType = document.getElementById("txType")?.value || "expense";
   await populateCategorySelect(document.getElementById("txCat"), txType);
   await populateCategorySelect(document.getElementById("recurCat"), "expense");
-
-  const histCat = document.getElementById("historyCatFilter");
-  if (histCat) {
-    const prev = histCat.value;
-    const cats = await getCategories();
-    histCat.innerHTML = `<option value="">All categories</option>` +
-      cats.map((c) => `<option value="${c.id}">${categoryOptionLabel(c)}</option>`).join("");
-    if (prev && cats.some((c) => c.id === Number(prev))) histCat.value = prev;
-  }
+  await refreshHistoryCategoryFilter();
 }
 
 export function bindMerchantAutoRule() {
@@ -308,6 +416,7 @@ export function bindMerchantAutoRule() {
     const catId = await applyAutoRules(m, typeSel?.value || "expense");
     if (catId && catSel) {
       catSel.value = catId;
+      updateTxCatPickLabel(await getCategories(typeSel?.value || "expense"));
       toast("Category auto-matched", "info");
     }
   });
@@ -350,10 +459,11 @@ function setSplitSectionVisible(show) {
   if (toggle) toggle.hidden = show;
 }
 
-export async function fillFormFromTx(tx) {
+export async function fillFormFromTx(tx, options = {}) {
   const { populateTxFormSelects } = await import("./wallets.js");
   await populateTxFormSelects();
-  document.getElementById("txFormTitle").textContent = "Edit transaction";
+  document.getElementById("txFormTitle").textContent = options.asNew ? "Add transaction" : "Edit transaction";
+  if (options.asNew) editId = null;
   document.getElementById("txAmt").value = tx.amount;
   syncTypePills(tx.type);
   document.getElementById("txDate").value = tx.date;
@@ -374,14 +484,19 @@ export async function fillFormFromTx(tx) {
     });
   }
   await populateCategorySelect(document.getElementById("txCat"), tx.type);
-  document.getElementById("txCat").value = tx.categoryId;
+  const catSel = document.getElementById("txCat");
+  if (catSel) catSel.value = tx.categoryId;
+  updateTxCatPickLabel(await getCategories(tx.type));
   if (tx.splits?.length) {
     setSplitSectionVisible(true);
     renderSplitRows(tx.splits);
   } else {
     setSplitSectionVisible(false);
   }
-  activatePane(document.getElementById("txForm"), tx.merchant || tx.notes || tx.tags?.length ? "details" : "essentials");
+  activatePane(
+    document.getElementById("txForm"),
+    options.asNew ? "essentials" : (tx.merchant || tx.notes || tx.tags?.length ? "details" : "essentials"),
+  );
   openAddSheet();
 }
 

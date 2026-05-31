@@ -1,4 +1,4 @@
-import { STORES, getAll, put, add, remove, getCategories, getSetting, setSetting, findCategoryByName } from "./db.js";
+import { STORES, getAll, getById, put, add, remove, getCategories, getSetting, setSetting, findCategoryByName } from "./db.js";
 import { formatCurrency, escapeHtml, toast } from "./ui.js";
 import { computeMetrics } from "./transactions.js";
 
@@ -113,12 +113,27 @@ export async function addCustomCategory(name, type, color, icon, parentId = null
   if (!trimmed) throw new Error("Category name required");
   const existing = await findCategoryByName(trimmed, type);
   if (existing) throw new Error(`"${trimmed}" already exists`);
+  let resolvedParentId = parentId ? Number(parentId) : null;
+  if (resolvedParentId) {
+    const parent = await getById(STORES.CAT, resolvedParentId);
+    if (!parent || parent.type !== type) throw new Error("Invalid parent category");
+    if (parent.parentId) throw new Error("Choose a top-level category as parent");
+  }
   await add(STORES.CAT, {
     name: trimmed, type, color: color || "#64748b", icon: normalizeIcon(icon),
     budgetLimit: 0, isFavorite: false, rollover: 0,
-    parentId: parentId ? Number(parentId) : null,
+    parentId: resolvedParentId,
     isTaxDeductible: !!isTaxDeductible,
   });
+}
+
+export function refreshCategoryParentSelect(cats, type = "expense") {
+  const parentSel = document.getElementById("newCatParent");
+  if (!parentSel) return;
+  parentSel.innerHTML = `<option value="">No parent (top-level)</option>` +
+    cats.filter((c) => c.type === type && !c.parentId).map((c) =>
+      `<option value="${c.id}">${escapeHtml(c.name)}</option>`
+    ).join("");
 }
 
 export async function renderCustomCategories(container) {
@@ -161,10 +176,7 @@ export async function renderCustomCategories(container) {
 
   const parentSel = document.getElementById("newCatParent");
   if (parentSel) {
-    parentSel.innerHTML = `<option value="">No parent (top-level)</option>` +
-      cats.filter((c) => c.type === "expense" && !c.parentId).map((c) =>
-        `<option value="${c.id}">${escapeHtml(c.name)}</option>`
-      ).join("");
+    refreshCategoryParentSelect(cats, document.getElementById("newCatType")?.value || "expense");
   }
 }
 

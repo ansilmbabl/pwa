@@ -2,7 +2,8 @@
 
 Offline-first personal expense tracker (PWA).
 
-**Live:** [https://ansilmbabl.github.io/pwa/exp-mng/](https://ansilmbabl.github.io/pwa/exp-mng/)
+**Live:** [https://ansilmbabl.github.io/pwa/exp-mng/](https://ansilmbabl.github.io/pwa/exp-mng/)  
+**Source:** [github.com/ansilmbabl/pwa](https://github.com/ansilmbabl/pwa)
 
 ## Quick start
 
@@ -13,9 +14,10 @@ Tap **?** in the top bar for a guided tour of the app.
 ```bash
 cd exp-mng
 python3 -m http.server 8080
+# or: npx serve .
 ```
 
-Open `http://localhost:8080` (a local server is required for service workers).
+Open `http://localhost:8080` (a local server is required for service workers and ES modules).
 
 ## Install on phone
 
@@ -24,7 +26,7 @@ Open `http://localhost:8080` (a local server is required for service workers).
 
 Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data**.
 
-**Updating:** You do not need to uninstall or clear cache manually. Use **Settings → Data → Update now** — it backs up your data, installs the latest version, and reloads. IndexedDB data normally survives updates; the backup is a safety net.
+**Updating:** You do not need to uninstall or clear cache manually. Use **Settings → Data → Update now** — it backs up your data, installs the latest version, and reloads. IndexedDB data normally survives updates; the backup is a safety net. If the UI stops responding after clearing cache, hard-refresh once (`Cmd+Shift+R` / `Ctrl+Shift+R`) or unregister the service worker in DevTools → Application.
 
 ---
 
@@ -33,11 +35,12 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 ### Core tracking
 - Add, edit, and delete income & expense transactions
 - **Date and time** on every entry (defaults to now)
-- Categories with icons, colors, **subcategories**, and tax-deductible flag
-- Merchant, payment method (Cash, UPI, Card, Bank), notes, and tags
+- **Category picker** — searchable popup with grouped **subcategories** (e.g. Food → Groceries)
+- Categories with icons, colors, parent/subcategory, and tax-deductible flag
+- Merchant, **payment method** (Cash, UPI, Card, Bank), notes, and tags
 - **Split lines** on a single transaction
-- Link transactions to **events/trips**
-- **Quick amounts** (100 / 500 / 1k) and **repeat last** entry
+- Link transactions to **events/trips** and **wallets**
+- **Quick amounts** (100 / 500 / 1k) and **repeat last** (prefills the form; you save manually)
 - **Duplicate detection** when saving similar entries
 - **Receipt photo** attach (stored locally on device)
 - **Share** individual transactions to other apps (Web Share API or clipboard)
@@ -47,14 +50,16 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - Center **+** button opens the add-transaction popup
 - **Settings ⚙** in the top-right header
 - **App tour (?)** — step-by-step guide; auto-shows on first visit
-- **Section tabs** inside long screens (Reports, Settings, Budget, Bills, Goals, Events, Wallets)
-- Add-transaction popup tabs: **Essentials · Details**
+- **More** menu: Calendar, Wallets, Budget, Bills, Goals, Events, Mileage, Tax calc
+- **Section tabs** inside long screens (Reports, Settings, Budget, Bills, Goals, Events, Wallets, Tax calc)
+- Add-transaction popup tabs: **Essentials · Details** (amount, date, category, payment on Essentials)
 - Obsidian dark theme with **light mode** toggle
 - Sticky filters on History; scroll-to-top on screen change
 
 ### Home dashboard
-- Total balance (all time)
-- Monthly income, spending, net, and left-to-spend
+- **Period tabs:** Week · Month · Year · All — hero stats and recent activity follow the selected period
+- Total balance (all time on hero when period is All)
+- Income, spending, net, and left-to-spend for the active period
 - Budget progress bar
 - **Wallet balances** summary
 - Recent activity list
@@ -62,8 +67,14 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 ### History
 - Full transaction list with time-based grouping (Today, Yesterday, This Week…)
 - Search by notes, merchant, amount
-- Filter by type and category; sort by date or amount
+- Filter by type; **multi-category filter** via category picker (selecting a parent includes subcategories)
+- Sort by date or amount
 - Edit, share, and delete actions
+
+### Calendar (More)
+- Monthly **spending heatmap** (darker = more spent)
+- Tap a day for that day’s transactions
+- **Open day report** jumps to Reports with that date selected
 
 ### Wallets
 - Multiple wallets (Cash, Bank, Card, custom)
@@ -74,7 +85,7 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 ### Budget
 - Monthly budget target with spent / remaining
 - Per-category limits, rollover, and favorites
-- Over-budget alerts
+- Over-budget alerts (toast + optional notifications)
 
 ### Bills & recurring
 - Recurring expense rules (weekly, monthly, yearly)
@@ -97,10 +108,14 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 
 ### Reports
 - Period filter: month picker or custom date range
+- Optional **multi-category filter** (picker; parent includes subcategories)
 - **Overview:** income, expenses, net, share & filtered export (CSV, JSON, PDF)
 - **Charts:** category pie chart, top categories, spending trend, month vs last month
 - **Insights:** top merchants, spending heatmap, cash flow forecast, yearly summary
+- **Advice:** spending tips based on your patterns and budgets
 - **Tax:** deductible categories + mileage total; link to salary tax calculator
+- **Share report** sheet — preview, format options, share/copy text, **share or save as PNG image**
+- **Branded exports** — logo/watermark on PDF, header on CSV, generator block on JSON
 
 ### India salary tax calculator (FY 2025-26)
 - **Old vs new regime** side-by-side comparison with recommendation
@@ -114,10 +129,13 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - Runs fully offline — no data sent anywhere
 
 ### Settings & data
-- **One-click app update** — Settings → Data → Update now (auto-backup, activate latest version, reload)
+- Tabs: **General · Data · Organize · About**
+- **About:** app version, storage info, link to GitHub source
+- **One-click app update** — Data → Update now (auto-backup, activate latest version, reload)
 - Update banner when a new version is detected
 - **Theme:** dark / light
 - **Currency:** INR, USD, EUR, GBP, JPY
+- **Notifications** (General): daily expense reminder, monthly/category budget alerts, bill due reminders, backup reminders (30+ days)
 - **PIN lock** (4–6 digits, auto-lock after idle)
 - **Auto-categorization rules** (merchant pattern → category)
 - **Backup folder** (File System Access API) — auto-saves `ledger-core-backup.json`
@@ -127,7 +145,7 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - Clear all data
 
 ### PWA & offline
-- Service worker offline cache
+- Service worker offline cache (network-first for app shell, cache fallback)
 - Installable as standalone app
 - Safe-area support for notched phones
 - Works fully offline after first load
@@ -136,3 +154,4 @@ Data is stored locally in IndexedDB. Export backups from **Settings ⚙ → Data
 - Vanilla HTML / CSS / JavaScript (ES modules)
 - IndexedDB v4 (`transactions`, `categories`, `tags`, `wallets`, `recurring`, `goals`, `funds`, `events`, `splits`, `auto_rules`, `mileage`, `settings`)
 - No build step; deploy as static files to GitHub Pages
+- Key modules: `app.js`, `transactions.js`, `reports.js`, `category-picker.js`, `calendar.js`, `notifications.js`, `share.js`, `share-image.js`, `export-brand.js`, `tax-india.js`, `sw.js`

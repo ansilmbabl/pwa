@@ -1,18 +1,36 @@
-import { STORES, getAll, getCategories } from "./db.js";
+import { STORES, getAll, getCategories, formatCategoryLabel } from "./db.js";
 import { parseLocalDate, parseDateTime, todayStr, monthKey, formatMonthLabel, startOfMonth, startOfWeek, inRange, formatDisplayDateTime } from "./dates.js";
 import { formatCurrency, escapeHtml, toast } from "./ui.js";
 import {
   buildBrandedPrintDocument, wrapCsvExport, stampJsonExport, EXPORT_APP_NAME,
 } from "./export-brand.js";
 import { renderSpendingAdvice } from "./advice.js";
+import { expandCategorySelection } from "./category-picker.js";
+import { renderCategoryFilterTrigger, bindCategoryFilterClear } from "./category-filter.js";
 
 let reportMode = "month";
 let reportMonth = monthKey(todayStr());
 let reportFrom = "";
 let reportTo = "";
 
+let reportCategoryIds = new Set();
+
+export function getReportCategoryIds() {
+  return reportCategoryIds;
+}
+
+export function setReportDay(dateStr) {
+  reportFrom = dateStr;
+  reportTo = dateStr;
+  reportMode = "range";
+  document.getElementById("reportFrom") && (document.getElementById("reportFrom").value = dateStr);
+  document.getElementById("reportTo") && (document.getElementById("reportTo").value = dateStr);
+  const monthSel = document.getElementById("reportMonth");
+  if (monthSel) monthSel.value = monthKey(dateStr);
+}
+
 export function getReportState() {
-  return { reportMode, reportMonth, reportFrom, reportTo };
+  return { reportMode, reportMonth, reportFrom, reportTo, reportCategoryIds };
 }
 
 export function setReportMonth(m) {
@@ -34,21 +52,31 @@ export function setReportRange(from, to) {
 
 export function getPeriodLabel() {
   if (reportMode === "range" && reportFrom && reportTo) {
+    if (reportFrom === reportTo) return formatDisplayDateTime(reportFrom, null);
     return `${reportFrom} → ${reportTo}`;
   }
   return formatMonthLabel(reportMonth);
 }
 
-function filterByPeriod(txs) {
+function filterByCategory(txs, cats) {
+  if (!reportCategoryIds.size) return txs;
+  const expanded = expandCategorySelection(reportCategoryIds, cats);
+  return txs.filter((t) => expanded.has(t.categoryId));
+}
+
+function filterByPeriod(txs, cats = []) {
+  let filtered;
   if (reportMode === "range" && reportFrom && reportTo) {
-    return txs.filter((t) => inRange(t.date, reportFrom, reportTo));
+    filtered = txs.filter((t) => inRange(t.date, reportFrom, reportTo));
+  } else {
+    filtered = txs.filter((t) => monthKey(t.date) === reportMonth);
   }
-  return txs.filter((t) => monthKey(t.date) === reportMonth);
+  return filterByCategory(filtered, cats);
 }
 
 export async function getFilteredTransactions() {
-  const txs = await getAll(STORES.TX);
-  return filterByPeriod(txs).sort((a, b) => parseDateTime(b.date, b.time) - parseDateTime(a.date, a.time));
+  const [txs, cats] = await Promise.all([getAll(STORES.TX), getCategories()]);
+  return filterByPeriod(txs, cats).sort((a, b) => parseDateTime(b.date, b.time) - parseDateTime(a.date, a.time));
 }
 
 function prevMonthKey(key) {
@@ -72,16 +100,19 @@ function categoryTotals(expenses) {
 
 export async function getReportSnapshot() {
   const [txs, cats] = await Promise.all([getAll(STORES.TX), getCategories()]);
-  const periodTxs = filterByPeriod(txs);
+  const periodTxs = filterByPeriod(txs, cats);
   const expenses = periodTxs.filter((t) => t.type === "expense");
   const income = periodTxs.filter((t) => t.type === "income");
   const totalExp = expenses.reduce((s, t) => s + t.amount, 0);
   const totalInc = income.reduce((s, t) => s + t.amount, 0);
-  const catTotals = categoryTotals(expenses).map((c) => ({
-    ...c,
-    name: cats.find((x) => x.id === c.id)?.name || "?",
-    icon: cats.find((x) => x.id === c.id)?.icon || "",
-  }));
+  const catTotals = categoryTotals(expenses).map((c) => {
+    const cat = cats.find((x) => x.id === c.id);
+    return {
+      ...c,
+      name: cat ? formatCategoryLabel(cat, cats) : "?",
+      icon: cat?.icon || "",
+    };
+  });
 
   let comparison = null;
   if (reportMode === "month") {
@@ -113,6 +144,23 @@ export async function getReportSnapshot() {
     cats,
     allTxs: txs,
   };
+}
+
+export async function renderReportCategoryFilter() {
+  const container = document.getElementById("reportCatFilter");
+  if (!container) return;
+  const cats = await getCategories();
+  renderCategoryFilterTrigger(container, cats, reportCategoryIds, () => {
+    renderReportCategoryFilter();
+    renderReports();
+  }, "Filter categories");
+}
+
+export function bindReportCategoryFilter() {
+  bindCategoryFilterClear(document.getElementById("reportCatClear"), reportCategoryIds, () => {
+    renderReportCategoryFilter();
+    renderReports();
+  });
 }
 
 export async function renderReports() {

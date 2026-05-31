@@ -2,14 +2,16 @@ import { initDB, getAll, STORES, getCategories } from "./db.js";
 import { todayStr, setDefaultDateTimeFields, formatDisplayDateTime } from "./dates.js";
 import { toast, showModal, formatCurrency, setLoading, escapeHtml } from "./ui.js";
 import {
-  saveTransaction, deleteTransaction, duplicateLastTransaction, getTransactions,
-  computeMetrics, renderHistory, renderRecentActivity, bindHistoryControls,
-  populateCategorySelect, fillFormFromTx, resetForm, bindSplitControls,
-  refreshAllCategorySelects,
+  saveTransaction, deleteTransaction, getTransactions,
+  computeMetrics, computeDashMetrics, renderHistory, renderRecentActivity, bindHistoryControls,
+  populateCategorySelect, fillFormFromTx, fillFormFromLastTx, resetForm, bindSplitControls,
+  refreshAllCategorySelects, refreshHistoryCategoryFilter, bindTxCategoryPicker,
   collectSplitData, setEditId, syncTypePills, openAddSheet, closeAddSheet,
   bindMerchantAutoRule, bindReceiptAttach,
+  getDashPeriod, setDashPeriod, loadDashPeriod,
 } from "./transactions.js";
-import { renderBudgetPanel, setMonthlyBudget, checkBudgetAlerts, renderCustomCategories, addCustomCategory, renderTagsManager, addTag } from "./budget.js";
+import { DASH_PERIOD_LABELS } from "./dates.js";
+import { renderBudgetPanel, setMonthlyBudget, checkBudgetAlerts, renderCustomCategories, addCustomCategory, renderTagsManager, addTag, refreshCategoryParentSelect } from "./budget.js";
 import { renderBillsPanel, addRecurringRule } from "./bills.js";
 import {
   bindNotificationSettings, loadNotificationSettingsForm, renderNotificationSettings,
@@ -19,6 +21,7 @@ import { renderGoalsPanel, addSavingsGoal, addSinkingFund, renderEventsPanel, ad
 import {
   renderReports, setReportMonth, setReportRange, populateMonthPicker, buildPDFHtml, printPDFReport,
   exportFilteredCSV, exportFilteredJSON, getReportSnapshot,
+  renderReportCategoryFilter, bindReportCategoryFilter,
 } from "./reports.js";
 import {
   exportJSON, exportCSVFile, importJSONFile, exportEncryptedBackup, importEncryptedBackup,
@@ -39,8 +42,67 @@ import {
   renderUpdatePanel, showUpdateBanner,
 } from "./update.js";
 import { bindTaxCalculator, renderTaxCalculatorPanel } from "./tax-ui.js";
+import { renderSpendingCalendar, bindCalendarNav } from "./calendar.js";
+import { renderAboutPanel } from "./about.js";
 
 let deferredPrompt;
+
+function renderDashboard(txs, cats, budget) {
+  const period = getDashPeriod();
+  const m = computeDashMetrics(txs, cats, budget, period);
+
+  document.getElementById("dashHeroLabel").textContent = m.heroLabel;
+  document.getElementById("totalBalance").textContent = formatCurrency(m.heroAmount);
+  document.getElementById("totalIncome").textContent = formatCurrency(m.income);
+  document.getElementById("totalExpense").textContent = formatCurrency(m.expense);
+  document.getElementById("monthNet").textContent = formatCurrency(m.net);
+
+  const extraChip = document.getElementById("dashExtraChip");
+  const extraLabel = document.getElementById("dashExtraLabel");
+  const extraValue = document.getElementById("leftToSpendDisplay");
+  const budgetBarWrap = document.querySelector(".dash-budget-bar");
+
+  if (period === "month" && m.leftToSpend != null) {
+    extraLabel.textContent = "Left to spend";
+    extraValue.textContent = formatCurrency(m.leftToSpend);
+    extraChip?.classList.remove("hidden");
+    budgetBarWrap?.classList.remove("hidden");
+    const bar = document.getElementById("dashBudgetBar");
+    if (bar && budget > 0) {
+      const pct = Math.min(100, (m.expense / budget) * 100);
+      bar.style.width = `${pct}%`;
+      bar.className = `progress-fill${pct >= 100 ? " over" : pct >= 80 ? " warn" : ""}`;
+    } else if (bar) {
+      bar.style.width = "0%";
+      bar.className = "progress-fill";
+    }
+  } else {
+    extraLabel.textContent = "Entries";
+    extraValue.textContent = String(m.txCount);
+    extraChip?.classList.remove("hidden");
+    budgetBarWrap?.classList.add("hidden");
+  }
+
+  document.getElementById("recentSectionLabel").textContent =
+    period === "all" ? "Recent" : `Recent · ${DASH_PERIOD_LABELS[period]}`;
+
+  document.querySelectorAll("[data-dash-period]").forEach((tab) => {
+    const active = tab.dataset.dashPeriod === period;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+}
+
+function bindDashPeriodTabs() {
+  document.querySelectorAll("[data-dash-period]").forEach((tab) => {
+    tab.addEventListener("click", async () => {
+      const period = tab.dataset.dashPeriod;
+      if (period === getDashPeriod()) return;
+      await setDashPeriod(period);
+      await refreshAll();
+    });
+  });
+}
 
 async function refreshAll() {
   setLoading(true);
@@ -50,20 +112,7 @@ async function refreshAll() {
       getCategories(),
       getMonthlyBudget(),
     ]);
-    const m = computeMetrics(txs, cats, budget);
-
-    document.getElementById("totalBalance").textContent = formatCurrency(m.totalBalance);
-    document.getElementById("monthNet").textContent = formatCurrency(m.monthNet);
-    document.getElementById("totalIncome").textContent = formatCurrency(m.monthlyIncome);
-    document.getElementById("totalExpense").textContent = formatCurrency(m.monthlyExpense);
-    document.getElementById("leftToSpendDisplay")?.textContent && (document.getElementById("leftToSpendDisplay").textContent = formatCurrency(m.leftToSpend));
-
-    const bar = document.getElementById("dashBudgetBar");
-    if (bar && budget > 0) {
-      const pct = Math.min(100, (m.monthlyExpense / budget) * 100);
-      bar.style.width = `${pct}%`;
-      bar.className = `progress-fill${pct >= 100 ? " over" : ""}`;
-    }
+    renderDashboard(txs, cats, budget);
 
     if (!txs.length) {
       document.getElementById("emptyDash")?.classList.remove("hidden");
@@ -71,7 +120,7 @@ async function refreshAll() {
       document.getElementById("emptyDash")?.classList.add("hidden");
     }
 
-    await renderRecentActivity(document.getElementById("recentActivity"), 5);
+    await renderRecentActivity(document.getElementById("recentActivity"), 5, getDashPeriod());
     await renderHistory(document.getElementById("historyList"), refreshAll);
     await renderBudgetPanel();
     await renderBillsPanel();
@@ -104,8 +153,10 @@ function switchTab(target, btn) {
     renderRulesPanel();
     renderUpdatePanel();
     loadNotificationSettingsForm();
+    renderAboutPanel();
   }
   if (target === "wallets") renderWalletsPanel();
+  if (target === "calendar") renderSpendingCalendar();
   if (target === "mileage") renderMileagePanel();
   if (target === "taxcalc") renderTaxCalculatorPanel();
 }
@@ -143,6 +194,13 @@ function bindPopupCloses() {
     resetForm();
     openAddSheet();
   });
+}
+
+function openDayReport() {
+  closeMorePopup();
+  switchTab("reports");
+  activatePane(document.getElementById("panel-reports"), "overview");
+  renderReports();
 }
 
 function bindNav() {
@@ -207,14 +265,12 @@ function bindForm() {
     btn.onclick = () => { document.getElementById("txAmt").value = btn.dataset.amt; };
   });
 
-  document.getElementById("dupLastBtn")?.addEventListener("click", async () => {
-    await duplicateLastTransaction();
-    await refreshAll();
-  });
+  document.getElementById("dupLastBtn")?.addEventListener("click", () => fillFormFromLastTx());
 
   bindSplitControls();
   bindMerchantAutoRule();
   bindReceiptAttach();
+  bindTxCategoryPicker();
 }
 
 function bindBudget() {
@@ -385,11 +441,16 @@ function bindSettings() {
       document.getElementById("newCatIcon").value = "";
       await renderCustomCategories(document.getElementById("categoriesList"));
       await refreshAllCategorySelects();
+      await renderReportCategoryFilter();
       await renderRulesPanel();
       toast("Category added", "success");
     } catch (e) {
       toast(e.message, "error");
     }
+  });
+  document.getElementById("newCatType")?.addEventListener("change", async () => {
+    const cats = await getAll(STORES.CAT);
+    refreshCategoryParentSelect(cats, document.getElementById("newCatType").value);
   });
   document.getElementById("addTagBtn")?.addEventListener("click", async () => {
     await addTag(document.getElementById("newTagName").value);
@@ -542,6 +603,7 @@ async function populateSelects() {
   await populateTxFormSelects();
   const txs = await getTransactions();
   populateMonthPicker(document.getElementById("reportMonth"), txs);
+  await renderReportCategoryFilter();
 
   await renderCustomCategories(document.getElementById("categoriesList"));
   await renderTagsManager(document.getElementById("tagsList"));
@@ -551,13 +613,14 @@ async function populateSelects() {
 }
 
 export async function initApp() {
-  await initDB();
-  await finishUpdateOnLaunch();
-  await initTheme();
+  document.body.classList.remove("loading");
+  document.body.style.overflow = "";
+
   setDefaultDateTimeFields(document.getElementById("txDate"), document.getElementById("txTime"));
   document.getElementById("recurNext") && (document.getElementById("recurNext").value = todayStr());
 
   bindNav();
+  bindDashPeriodTabs();
   bindPopupCloses();
   bindForm();
   bindBudget();
@@ -566,17 +629,17 @@ export async function initApp() {
   bindWallets();
   bindMileage();
   bindReports();
+  bindReportCategoryFilter();
   bindSettings();
   bindNotificationSettings();
+  bindCalendarNav(() => renderSpendingCalendar(), openDayReport);
   bindPWA();
   bindEvents();
   bindHistoryControls();
   bindLockEvents();
   initAllSectionTabs();
   bindTaxCalculator();
-
   document.getElementById("openTaxCalcBtn")?.addEventListener("click", () => switchTab("taxcalc"));
-
   bindTour({
     switchTab: (t) => switchTab(t),
     openMore: openMorePopup,
@@ -584,7 +647,14 @@ export async function initApp() {
     activatePane: (panelId, pane) => activatePane(document.getElementById(panelId), pane),
   });
 
+  try {
+  await initDB();
+  await finishUpdateOnLaunch();
+  await initTheme();
+
   await populateSelects();
+  await loadDashPeriod();
+  await renderAboutPanel();
   await refreshAll();
   await checkBackupReminder();
   await initLock();
@@ -597,6 +667,12 @@ export async function initApp() {
     closeMore: closeMorePopup,
     activatePane: (panelId, pane) => activatePane(document.getElementById(panelId), pane),
   });
+  } catch (err) {
+    console.error("initApp failed:", err);
+    setLoading(false);
+    document.body.style.overflow = "";
+    toast(err?.message || "App failed to start — try a hard refresh", "error");
+  }
 }
 
 document.addEventListener("DOMContentLoaded", initApp);
